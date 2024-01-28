@@ -14,7 +14,8 @@ project "VKBGEngine-Core"
     includedirs
     {
         "src",
-        "%{IncludeDir.GLFW}"
+        "%{IncludeDir.GLFW}",
+        "%{IncludeDir.GLM}"
     }
 
     links
