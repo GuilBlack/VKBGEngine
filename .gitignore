@@ -22,8 +22,8 @@
 mono_crash.*
 
 # Build results
-[Bb]in/
-[Bb]in-[Ii]nter/
+**[Bb]in/
+**[Bb]in-[Ii]nter/
 [Dd]ebug/
 [Dd]ebugPublic/
 [Rr]elease/
