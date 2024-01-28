@@ -13,7 +13,8 @@ project "VKBGEngine-App"
 
     includedirs
     {
-        "%{wks.location}/VKBGEngine-Core/src"
+        "%{wks.location}/VKBGEngine-Core/src",
+        "%{IncludeDir.GLFW}"
     }
 
     links

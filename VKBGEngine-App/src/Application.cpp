@@ -2,6 +2,9 @@
 
 int main()
 {
-    Helper::Print("Hello World!\n");
+    VKBGEngine& engine = VKBGEngine::Instance();
+    engine.Init();
+    engine.Run();
+    engine.Shutdown();
     return 0;
 }

@@ -14,10 +14,12 @@ project "VKBGEngine-Core"
     includedirs
     {
         "src",
+        "%{IncludeDir.GLFW}"
     }
 
     links
     {
+        "GLFW"
     }
 
     filter "system:windows"

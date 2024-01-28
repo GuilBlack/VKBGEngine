@@ -1,0 +1,3 @@
+[submodule "VKBGEngine-Core/vendor/GLFW"]
+	path = VKBGEngine-Core/vendor/GLFW
+	url = https://github.com/GuilBlack/glfw
