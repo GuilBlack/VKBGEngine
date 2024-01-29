@@ -6,6 +6,7 @@
 #include <utility>
 #include <algorithm>
 #include <functional>
+#include <stdexcept>
 
 // Data Structures
 #include <string>
@@ -13,6 +14,10 @@
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
+
+// File System
+#include <filesystem>
+#include <fstream>
 
 // VKBGEngine Libraries
 

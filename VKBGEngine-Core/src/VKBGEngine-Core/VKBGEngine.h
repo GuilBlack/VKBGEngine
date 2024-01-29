@@ -1,22 +1,34 @@
 #pragma once
-class VKBGEngine
+
+namespace vkbg
+{
+
+class Engine
 {
 public:
-    VKBGEngine()
-        : m_Window(nullptr)
-    {}
+    ~Engine() = default;
 
-    static VKBGEngine& Instance()
+    static Engine& Instance()
     {
-        static VKBGEngine instance;
+        static Engine instance;
         return instance;
     }
 
-    void Init();
+    void Init(struct WindowProps properties);
     void Run();
     void Shutdown();
 
 private:
-    struct GLFWwindow* m_Window;
+    class Window* m_Window{ nullptr };
+    class Pipeline* m_Pipeline{ nullptr };
+
+private:
+    Engine() = default;
+    Engine(const Engine&) = delete;
+    Engine& operator=(const Engine&) = delete;
+    Engine(Engine&&) = delete;
+    Engine& operator=(Engine&&) = delete;
 };
+
+}
 
