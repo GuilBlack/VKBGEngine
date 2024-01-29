@@ -13,6 +13,8 @@ project "VKBGEngine-App"
 
     includedirs
     {
+        "src",
+        "src/%{prj.name}",
         "%{wks.location}/VKBGEngine-Core/src",
         "%{IncludeDir.GLFW}"
     }
@@ -21,6 +23,11 @@ project "VKBGEngine-App"
     {
         "VKBGEngine-Core"
     }
+
+    pchheader "pch.h"
+    pchsource "src/pch.cpp"
+
+    forceincludes "pch.h"
 
     filter "system:windows"
         cppdialect "C++20"

@@ -14,20 +14,37 @@ project "VKBGEngine-Core"
     includedirs
     {
         "src",
+        "src/%{prj.name}",
         "%{IncludeDir.GLFW}",
         "%{IncludeDir.GLM}"
     }
 
     links
     {
-        "GLFW"
+        "GLFW",
+        "vulkan-1"
     }
+
+    pchheader "vkbgpch.h"
+    pchsource "src/vkbgpch.cpp"
+
+    forceincludes "vkbgpch.h"
 
     filter "system:windows"
         cppdialect "C++20"
         staticruntime "On"
         systemversion "latest"
         defines "PLATFORM_WINDOWS"
+
+        includedirs
+        {
+            "C:/VulkanSDK/1.3.268.0/Include"
+        }
+
+        libdirs
+        {
+            "C:/VulkanSDK/1.3.268.0/Lib"
+        }
 
     filter "configurations:Debug"
         symbols "On"
