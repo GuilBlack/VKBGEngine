@@ -1,5 +1,6 @@
 #include "RenderContext.h"
 #include "Window.h"
+#include "VulkanExtensionHelper.h"
 
 namespace vkbg
 {
@@ -17,10 +18,18 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
 RenderContext::RenderContext(Window* window)
 {
     CreateInstance();
+    SetupDebugMessage();
 }
 
 RenderContext::~RenderContext()
-{}
+{
+    if constexpr (EnableValidationLayers)
+    {
+        DestroyDebugUtilsMessengerEXT(m_Instance, m_DebugMessenger, nullptr);
+    }
+
+    vkDestroyInstance(m_Instance, nullptr);
+}
 
 void RenderContext::CreateInstance()
 {
@@ -69,6 +78,8 @@ void RenderContext::CreateInstance()
     {
         throw std::runtime_error("failed to create instance!");
     }
+
+    HasGflwRequiredInstanceExtensions();
 }
 
 bool RenderContext::CheckValidationLayerSupport()
@@ -132,6 +143,41 @@ void RenderContext::PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreate
     };
 }
 
+void RenderContext::HasGflwRequiredInstanceExtensions()
+{
+    uint32_t extensionCount{ 0 };
+    vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
+
+    std::vector<VkExtensionProperties> extensions(extensionCount);
+    vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
+
+    std::cout << "Available extensions:\n";
+
+    std::unordered_set<std::string> availableExtensions;
+    for (const auto& extension : extensions)
+    {
+        std::cout << '\t' << extension.extensionName << '\n';
+        availableExtensions.insert(extension.extensionName);
+    }
+    
+    auto glfwRequiredExtensions = GetRequiredExtensions();
+    std::cout << "Required extensions:\n";
+    for (auto glfwRequiredExtension : glfwRequiredExtensions)
+    {
+        std::cout << "\t" << glfwRequiredExtension << "\n";
+        if (availableExtensions.find(glfwRequiredExtension) == availableExtensions.end())
+            throw std::runtime_error("Missing required GLFW extension");
+    }
 }
 
+void RenderContext::SetupDebugMessage()
+{
+    if (EnableValidationLayers == false)
+        return;
+    VkDebugUtilsMessengerCreateInfoEXT createInfo;
+    PopulateDebugMessengerCreateInfo(createInfo);
+    if (CreateDebugUtilsMessengerEXT(m_Instance, &createInfo, nullptr, &m_DebugMessenger) != VK_SUCCESS)
+        throw std::runtime_error("failed to set up debug messenger");
+}
 
+}

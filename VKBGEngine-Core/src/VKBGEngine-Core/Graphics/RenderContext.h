@@ -18,9 +18,13 @@ private:
     bool CheckValidationLayerSupport();
     std::vector<const char*> GetRequiredExtensions();
     void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
+    void HasGflwRequiredInstanceExtensions();
+
+    void SetupDebugMessage();
 
 private:
     VkInstance m_Instance;
+    VkDebugUtilsMessengerEXT m_DebugMessenger;
 
     std::vector<const char*> m_ValidationLayers{
         "VK_LAYER_KHRONOS_validation"

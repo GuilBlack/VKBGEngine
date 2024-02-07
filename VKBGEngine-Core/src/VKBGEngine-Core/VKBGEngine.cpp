@@ -13,11 +13,6 @@ void Engine::Init(WindowProps properties)
 
     m_Window = new Window(properties);
 
-    uint32_t extensionCount = 0;
-    vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
-
-    std::cout << extensionCount << " extensions supported\n";
-
     m_RenderContext = new RenderContext(m_Window);
 
     m_Pipeline = new Pipeline("res/Shaders/Compiled/Simple.vert.spv", "res/Shaders/Compiled/Simple.frag.spv");
