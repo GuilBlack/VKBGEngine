@@ -16,18 +16,21 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
 }
 
 RenderContext::RenderContext(Window* window)
+    : m_pWindow{window}
 {
     CreateInstance();
     SetupDebugMessage();
+    CreateSurface();
+    PickPhysicalDevice();
 }
 
 RenderContext::~RenderContext()
 {
+    vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
     if constexpr (EnableValidationLayers)
     {
         DestroyDebugUtilsMessengerEXT(m_Instance, m_DebugMessenger, nullptr);
     }
-
     vkDestroyInstance(m_Instance, nullptr);
 }
 
@@ -84,7 +87,7 @@ void RenderContext::CreateInstance()
 
 bool RenderContext::CheckValidationLayerSupport()
 {
-    std::cout << "Checking for validation layers...\n";
+    LOG("Checking for validation layers...\n");
     uint32_t layerCount{};
     vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
 
@@ -151,20 +154,20 @@ void RenderContext::HasGflwRequiredInstanceExtensions()
     std::vector<VkExtensionProperties> extensions(extensionCount);
     vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
 
-    std::cout << "Available extensions:\n";
+    LOG("Available extensions:\n");
 
     std::unordered_set<std::string> availableExtensions;
     for (const auto& extension : extensions)
     {
-        std::cout << '\t' << extension.extensionName << '\n';
+        LOG('\t' << extension.extensionName << '\n');
         availableExtensions.insert(extension.extensionName);
     }
     
     auto glfwRequiredExtensions = GetRequiredExtensions();
-    std::cout << "Required extensions:\n";
+    LOG("Required extensions:\n");
     for (auto glfwRequiredExtension : glfwRequiredExtensions)
     {
-        std::cout << "\t" << glfwRequiredExtension << "\n";
+        LOG("\t" << glfwRequiredExtension << "\n");
         if (availableExtensions.find(glfwRequiredExtension) == availableExtensions.end())
             throw std::runtime_error("Missing required GLFW extension");
     }
@@ -178,6 +181,182 @@ void RenderContext::SetupDebugMessage()
     PopulateDebugMessengerCreateInfo(createInfo);
     if (CreateDebugUtilsMessengerEXT(m_Instance, &createInfo, nullptr, &m_DebugMessenger) != VK_SUCCESS)
         throw std::runtime_error("failed to set up debug messenger");
+}
+
+void RenderContext::CreateSurface()
+{
+    m_pWindow->CreateSurface(m_Instance, &m_Surface);
+}
+
+void RenderContext::PickPhysicalDevice()
+{
+    uint32_t deviceCount = 0;
+    vkEnumeratePhysicalDevices(m_Instance, &deviceCount, nullptr);
+    if (deviceCount == 0)
+        throw std::runtime_error("Failed to find a GPU that supports Vulkan");
+
+    LOG("\nDevice count: " << deviceCount << '\n\n');
+    std::vector<VkPhysicalDevice> physicalDevices(deviceCount);
+    vkEnumeratePhysicalDevices(m_Instance, &deviceCount, physicalDevices.data());
+
+    std::multimap<uint32_t, VkPhysicalDevice> deviceRanking;
+    for (const auto& device : physicalDevices)
+    {
+        uint32_t score{};
+        if (!IsDeviceSuitable(device, score))
+            continue;
+        deviceRanking.insert({ score, device });
+        LOG("\tDevice Inserted in Ranking\n\n");
+    }
+
+    if (deviceRanking.empty())
+        throw std::runtime_error("Failed to find a suitable device.");
+
+    m_PhysicalDevice = deviceRanking.rbegin()->second;
+    VkPhysicalDeviceProperties deviceProperties;
+    vkGetPhysicalDeviceProperties(m_PhysicalDevice, &deviceProperties);
+    LOG("\nUsing physical device: " << deviceProperties.deviceName << '\n');
+}
+
+bool RenderContext::IsDeviceSuitable(VkPhysicalDevice device, uint32_t& score)
+{
+    score = 0;
+
+    if (!FindQueueFamily(device).IsComplete())
+        return false;
+    if (!CheckDeviceExtensionSupport(device))
+        return false;
+
+    bool swapChainAdequate = false;
+    SwapChainSupportDetails swapChainDetails = QuerySwapChainSupport(device);
+    if (swapChainDetails.Formats.empty() || swapChainDetails.PresentModes.empty())
+        return false;
+
+    VkPhysicalDeviceProperties deviceProperties{};
+    vkGetPhysicalDeviceProperties(device, &deviceProperties);
+
+    LOG(deviceProperties.deviceName << ":\n");
+
+    switch (deviceProperties.deviceType)
+    {
+        case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
+        {
+            score += 1000;
+            LOG("\tType: Discrete GPU\n");
+            break;
+        }
+        case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
+        {
+            score += 500;
+            LOG("\tType: Integrated GPU\n");
+            break;
+        }
+        case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:
+        {
+            score += 250;
+            LOG("\tType: Virtual GPU\n");
+            break;
+        }
+        default:
+        {
+            score += 0;
+            LOG("\tType: Other Device Type\n");
+        }
+    }
+
+    VkPhysicalDeviceFeatures supportedFeatures{};
+    vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
+    if (supportedFeatures.samplerAnisotropy != false)
+        score += 200;
+
+    LOG("\tScore: " << score << '\n');
+
+    return true;
+}
+
+QueueFamilyIndices RenderContext::FindQueueFamily(VkPhysicalDevice device)
+{
+    QueueFamilyIndices indices;
+
+    uint32_t queueFamilyCount = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+
+    std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+
+    int i = 0;
+    for (const auto& queueFamily : queueFamilies)
+    {
+        if (queueFamily.queueCount <= 0)
+            continue;
+
+        if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+            indices.GraphicsFamily = i;
+
+        VkBool32 presentSupport = false;
+        vkGetPhysicalDeviceSurfaceSupportKHR(device, i, m_Surface, &presentSupport);
+        if (presentSupport)
+            indices.PresentFamily = i;
+
+        if (indices.IsComplete())
+            break;
+
+        ++i;
+    }
+
+    return indices;
+}
+
+bool RenderContext::CheckDeviceExtensionSupport(VkPhysicalDevice device)
+{
+    uint32_t extensionCount;
+    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
+    
+    std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+    vkEnumerateDeviceExtensionProperties(
+        device,
+        nullptr,
+        &extensionCount,
+        availableExtensions.data());
+
+    std::unordered_set<std::string> requiredExtensions(m_DeviceExtensions.begin(), m_DeviceExtensions.end());
+
+    for (const auto& extension : availableExtensions)
+    {
+        requiredExtensions.erase(extension.extensionName);
+    }
+
+    return requiredExtensions.empty();
+}
+
+SwapChainSupportDetails RenderContext::QuerySwapChainSupport(VkPhysicalDevice device)
+{
+    SwapChainSupportDetails details{};
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, m_Surface, &details.Capabilities);
+
+    uint32_t formatCount{ 0 };
+    vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_Surface, 
+        &formatCount, nullptr);
+    
+    if (formatCount != 0)
+    {
+        details.Formats.resize(formatCount);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_Surface, 
+            &formatCount, details.Formats.data());
+    }
+
+    uint32_t presentModeCount{ 0 };
+    vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_Surface, 
+        &presentModeCount, nullptr);
+
+    if (presentModeCount != 0)
+    {
+        details.PresentModes.resize(presentModeCount);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_Surface, 
+            &presentModeCount, details.PresentModes.data());
+    }
+
+    return details;
 }
 
 }
