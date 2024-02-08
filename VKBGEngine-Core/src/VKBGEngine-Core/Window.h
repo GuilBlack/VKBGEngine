@@ -1,12 +1,8 @@
 #pragma once
+#include "WindowProps.h"
+
 namespace vkbg
 {
-struct WindowProps
-{
-    uint32_t Width;
-    uint32_t Height;
-    std::string Title;
-};
 
 class Window
 {
@@ -21,6 +17,8 @@ public:
     }
 
     bool ShouldClose() const;
+
+    void CreateSurface(VkInstance instance, VkSurfaceKHR* surface);
 
 private:
     void Init();

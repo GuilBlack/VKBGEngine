@@ -2,11 +2,6 @@
 
 namespace vkbg
 {
-bool Window::ShouldClose() const
-{
-    return glfwWindowShouldClose(m_Window);
-}
-
 void Window::Init()
 {
     glfwInit();
@@ -22,4 +17,14 @@ void Window::Destroy()
     glfwTerminate();
 }
 
+bool Window::ShouldClose() const
+{
+    return glfwWindowShouldClose(m_Window);
+}
+
+void Window::CreateSurface(VkInstance instance, VkSurfaceKHR* surface)
+{
+    if (glfwCreateWindowSurface(instance, m_Window, nullptr, surface) != VK_SUCCESS)
+        throw std::runtime_error("Failed to create VkSurfaceKHR");
+}
 }

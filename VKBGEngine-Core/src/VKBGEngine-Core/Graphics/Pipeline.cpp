@@ -13,8 +13,8 @@ namespace vkbg
         auto vertShaderCode = ReadFile(vertShaderPath);
         auto fragShaderCode = ReadFile(fragShaderPath);
 
-        std::cout << "vertShaderCode size: " << vertShaderCode.size() << std::endl;
-        std::cout << "fragShaderCode size: " << fragShaderCode.size() << std::endl;
+        LOG("vertShaderCode size: " << vertShaderCode.size() << std::endl);
+        LOG("fragShaderCode size: " << fragShaderCode.size() << std::endl);
     }
 
     std::vector<uint8_t> Pipeline::ReadFile(const std::string & filePath)

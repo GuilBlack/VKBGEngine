@@ -2,5 +2,5 @@
 
 void Helper::Print(const std::string& str)
 {
-    std::cout << str << std::endl;
+    LOG(str << std::endl);
 }
