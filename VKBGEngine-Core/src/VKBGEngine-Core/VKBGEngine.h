@@ -1,7 +1,12 @@
 #pragma once
+#include "WindowProps.h"
 
 namespace vkbg
 {
+struct EngineProps
+{
+    WindowProps WindowProperties;
+};
 
 class Engine
 {
@@ -14,7 +19,7 @@ public:
         return instance;
     }
 
-    void Init(struct WindowProps properties);
+    void Init(EngineProps properties);
     void Run();
     void Shutdown();
 

@@ -3,15 +3,16 @@
 #include "Helper.h"
 #include "Graphics/Pipeline.h"
 #include "Graphics/RenderContext.h"
+#include "WindowProps.h"
 
 namespace vkbg
 {
-void Engine::Init(WindowProps properties)
+void Engine::Init(EngineProps properties)
 {
     Helper::Print("Hello World!\n");
     glfwInit();
 
-    m_Window = new Window(properties);
+    m_Window = new Window(properties.WindowProperties);
 
     m_RenderContext = new RenderContext(m_Window);
 
