@@ -22,10 +22,13 @@ RenderContext::RenderContext(Window* window)
     SetupDebugMessage();
     CreateSurface();
     PickPhysicalDevice();
+    CreateLogicalDevice();
+    CreateCommandPool();
 }
 
 RenderContext::~RenderContext()
 {
+    vkDestroyDevice(m_Device, nullptr);
     vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
     if constexpr (EnableValidationLayers)
     {
@@ -34,6 +37,7 @@ RenderContext::~RenderContext()
     vkDestroyInstance(m_Instance, nullptr);
 }
 
+#pragma region Initialization Code
 void RenderContext::CreateInstance()
 {
     if constexpr (EnableValidationLayers)
@@ -359,4 +363,72 @@ SwapChainSupportDetails RenderContext::QuerySwapChainSupport(VkPhysicalDevice de
     return details;
 }
 
+void RenderContext::CreateLogicalDevice()
+{
+    QueueFamilyIndices indices = FindQueueFamily(m_PhysicalDevice);
+
+    std::vector<VkDeviceQueueCreateInfo> queueCreateInfos{};
+    std::unordered_set<uint32_t> uniqueQueueFamilies{
+        indices.GraphicsFamily.value(),
+        indices.PresentFamily.value()
+    };
+
+    float queuePriority = 1.0f;
+    for (uint32_t queueFamily : uniqueQueueFamilies)
+    {
+        VkDeviceQueueCreateInfo queueCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+            .queueFamilyIndex = queueFamily,
+            .queueCount = 1,
+            .pQueuePriorities = &queuePriority
+        };
+        queueCreateInfos.push_back(queueCreateInfo);
+    }
+
+    VkPhysicalDeviceFeatures deviceFeatures{
+        .samplerAnisotropy = VK_TRUE
+    };
+
+    VkDeviceCreateInfo createInfo{
+        .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+        .queueCreateInfoCount = (uint32_t)queueCreateInfos.size(),
+        .pQueueCreateInfos = queueCreateInfos.data(),
+        .enabledExtensionCount = (uint32_t)m_DeviceExtensions.size(),
+        .ppEnabledExtensionNames = m_DeviceExtensions.data(),
+        .pEnabledFeatures = &deviceFeatures,
+    };
+
+    if (EnableValidationLayers)
+    {
+        createInfo.enabledLayerCount = (uint32_t)m_ValidationLayers.size();
+        createInfo.ppEnabledLayerNames = m_ValidationLayers.data();
+    }
+    else
+    {
+        createInfo.enabledLayerCount = 0;
+    }
+
+    if (vkCreateDevice(m_PhysicalDevice, &createInfo, nullptr, &m_Device) != VK_SUCCESS)
+        throw std::runtime_error("Failed to create logical device");
+
+    vkGetDeviceQueue(m_Device, indices.GraphicsFamily.value(), 0, &m_GraphicsQueue);
+    vkGetDeviceQueue(m_Device, indices.PresentFamily.value(), 0, &m_PresentQueue);
+}
+
+void RenderContext::CreateCommandPool()
+{
+    QueueFamilyIndices queueFamilyIndices = FindQueueFamily(m_PhysicalDevice);
+
+    VkCommandPoolCreateInfo poolInfo = {};
+    poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    poolInfo.queueFamilyIndex = queueFamilyIndices.GraphicsFamily.value();
+    poolInfo.flags =
+        VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+
+    if (vkCreateCommandPool(m_Device, &poolInfo, nullptr, &m_GraphicsCommandPool) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to create command pool!");
+    }
+}
+#pragma endregion
 }

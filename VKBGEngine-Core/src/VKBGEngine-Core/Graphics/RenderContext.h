@@ -29,6 +29,8 @@ public:
     ~RenderContext();
 
 private:
+
+#pragma region Initialization Code
     void CreateInstance();
     bool CheckValidationLayerSupport();
     std::vector<const char*> GetRequiredExtensions();
@@ -45,12 +47,23 @@ private:
     bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
     SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice device);
 
+    void CreateLogicalDevice();
+
+    void CreateCommandPool();
+#pragma endregion
+
+
 private:
     VkInstance m_Instance;
     VkPhysicalDevice m_PhysicalDevice;
     VkDebugUtilsMessengerEXT m_DebugMessenger;
     Window* m_pWindow;
+    
     VkSurfaceKHR m_Surface;
+    VkDevice m_Device;
+    VkQueue m_GraphicsQueue;
+    VkCommandPool m_GraphicsCommandPool;
+    VkQueue m_PresentQueue;
 
     std::vector<const char*> m_ValidationLayers{
         "VK_LAYER_KHRONOS_validation"
