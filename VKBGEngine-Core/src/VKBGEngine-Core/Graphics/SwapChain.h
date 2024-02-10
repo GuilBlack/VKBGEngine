@@ -18,14 +18,17 @@ private:
     VkExtent2D m_WindowExtent;
 
     VkSwapchainKHR m_SwapChain;
-    std::vector<VkImage> m_SwapChainImages;
     VkFormat m_SwapChainImageFormat;
     VkExtent2D m_SwapChainExtent;
+    std::vector<VkImage> m_SwapChainImages;
+    std::vector<VkImageView> m_SwapChainImageViews;
 
 private:
     void CreateSwapChain();
     VkSurfaceFormatKHR PickSwapChainSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
     VkPresentModeKHR PickSwapChainPresentMode(const std::vector< VkPresentModeKHR>& availablePresentModes);
     VkExtent2D PickSwapChainExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+
+    void CreateImageViews();
 };
 }
