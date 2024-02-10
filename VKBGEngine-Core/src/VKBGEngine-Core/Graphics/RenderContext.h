@@ -28,6 +28,12 @@ public:
     RenderContext(class Window* window);
     ~RenderContext();
 
+    VkDevice GetLogicalDevice() const { return m_Device; }
+    SwapChainSupportDetails GetSwapChainSupport() { return QuerySwapChainSupport(m_PhysicalDevice); }
+    VkSurfaceKHR GetSurface() { return m_Surface; }
+
+    QueueFamilyIndices GetQueueFamilies() { return FindQueueFamilies(m_PhysicalDevice); }
+
 private:
 
 #pragma region Initialization Code
@@ -43,7 +49,7 @@ private:
 
     void PickPhysicalDevice();
     bool IsDeviceSuitable(VkPhysicalDevice device, uint32_t& score);
-    QueueFamilyIndices FindQueueFamily(VkPhysicalDevice device);
+    QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
     bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
     SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice device);
 
@@ -57,7 +63,7 @@ private:
     VkInstance m_Instance;
     VkPhysicalDevice m_PhysicalDevice;
     VkDebugUtilsMessengerEXT m_DebugMessenger;
-    Window* m_pWindow;
+    class Window* m_pWindow;
     
     VkSurfaceKHR m_Surface;
     VkDevice m_Device;

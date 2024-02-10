@@ -28,6 +28,7 @@ RenderContext::RenderContext(Window* window)
 
 RenderContext::~RenderContext()
 {
+    vkDestroyCommandPool(m_Device, m_GraphicsCommandPool, nullptr);
     vkDestroyDevice(m_Device, nullptr);
     vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
     if constexpr (EnableValidationLayers)
@@ -226,7 +227,7 @@ bool RenderContext::IsDeviceSuitable(VkPhysicalDevice device, uint32_t& score)
 {
     score = 0;
 
-    if (!FindQueueFamily(device).IsComplete())
+    if (!FindQueueFamilies(device).IsComplete())
         return false;
     if (!CheckDeviceExtensionSupport(device))
         return false;
@@ -278,7 +279,7 @@ bool RenderContext::IsDeviceSuitable(VkPhysicalDevice device, uint32_t& score)
     return true;
 }
 
-QueueFamilyIndices RenderContext::FindQueueFamily(VkPhysicalDevice device)
+QueueFamilyIndices RenderContext::FindQueueFamilies(VkPhysicalDevice device)
 {
     QueueFamilyIndices indices;
 
@@ -365,7 +366,7 @@ SwapChainSupportDetails RenderContext::QuerySwapChainSupport(VkPhysicalDevice de
 
 void RenderContext::CreateLogicalDevice()
 {
-    QueueFamilyIndices indices = FindQueueFamily(m_PhysicalDevice);
+    QueueFamilyIndices indices = FindQueueFamilies(m_PhysicalDevice);
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos{};
     std::unordered_set<uint32_t> uniqueQueueFamilies{
@@ -417,7 +418,7 @@ void RenderContext::CreateLogicalDevice()
 
 void RenderContext::CreateCommandPool()
 {
-    QueueFamilyIndices queueFamilyIndices = FindQueueFamily(m_PhysicalDevice);
+    QueueFamilyIndices queueFamilyIndices = FindQueueFamilies(m_PhysicalDevice);
 
     VkCommandPoolCreateInfo poolInfo = {};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
