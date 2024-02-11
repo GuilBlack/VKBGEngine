@@ -21,7 +21,7 @@ project "VKBGEngine-App"
 
     links
     {
-        "VKBGEngine-Core"
+        "VKBGEngine-Core",
     }
 
     pchheader "pch.h"
@@ -34,6 +34,11 @@ project "VKBGEngine-App"
         staticruntime "On"
         systemversion "latest"
         defines "PLATFORM_WINDOWS"
+
+        includedirs
+        {
+            "C:/VulkanSDK/1.3.268.0/Include"
+        }
 
     filter "configurations:Debug"
         symbols "On"

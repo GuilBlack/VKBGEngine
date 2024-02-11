@@ -38,6 +38,61 @@ RenderContext::~RenderContext()
     vkDestroyInstance(m_Instance, nullptr);
 }
 
+VkFormat RenderContext::FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
+{
+    for (auto format : candidates)
+    {
+        VkFormatProperties props;
+        vkGetPhysicalDeviceFormatProperties(m_PhysicalDevice, format, &props);
+        if (tiling == VK_IMAGE_TILING_LINEAR
+            && (props.linearTilingFeatures & features) == features)
+            return format;
+        else if (tiling == VK_IMAGE_TILING_OPTIMAL
+            && (props.optimalTilingFeatures & features) == features)
+            return format;
+    }
+    throw std::runtime_error("Failed to find supported format");
+}
+
+uint32_t RenderContext::FindMemoryType(uint32_t memoryTypeFilter, VkMemoryPropertyFlagBits properties)
+{
+    VkPhysicalDeviceMemoryProperties memoryProperties;
+    vkGetPhysicalDeviceMemoryProperties(m_PhysicalDevice, &memoryProperties);
+    for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; i++)
+    {
+        if ((memoryTypeFilter & (1 << i)) &&
+            (memoryProperties.memoryTypes[i].propertyFlags & properties) == properties)
+        {
+            return i;
+        }
+    }
+
+    throw std::runtime_error("failed to find suitable memory type!");
+}
+
+void RenderContext::CreateImageWithInfo(const VkImageCreateInfo& imageInfo, VkMemoryPropertyFlagBits memoryProperties, VkImage& image, VkDeviceMemory& imageMemory)
+{
+    if (vkCreateImage(m_Device, &imageInfo, nullptr, &image) != VK_SUCCESS)
+        throw std::runtime_error("Failed to create image");
+
+    VkMemoryRequirements memRequirements;
+    vkGetImageMemoryRequirements(m_Device, image, &memRequirements);
+
+    VkMemoryAllocateInfo allocInfo{
+        .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        .allocationSize = memRequirements.size,
+        .memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits, memoryProperties)
+    };
+
+    if (vkAllocateMemory(m_Device, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS)
+        throw std::runtime_error("Failed to allocate image memory");
+
+    if (vkBindImageMemory(m_Device, image, imageMemory, 0) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to bind image memory!");
+    }
+}
+
 #pragma region Initialization Code
 void RenderContext::CreateInstance()
 {

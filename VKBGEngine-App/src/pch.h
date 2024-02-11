@@ -13,3 +13,6 @@
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
+
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>

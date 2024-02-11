@@ -28,11 +28,22 @@ public:
     RenderContext(class Window* window);
     ~RenderContext();
 
+    // Getters
     VkDevice GetLogicalDevice() const { return m_Device; }
     SwapChainSupportDetails GetSwapChainSupport() { return QuerySwapChainSupport(m_PhysicalDevice); }
     VkSurfaceKHR GetSurface() { return m_Surface; }
-
     QueueFamilyIndices GetQueueFamilies() { return FindQueueFamilies(m_PhysicalDevice); }
+
+    VkFormat FindSupportedFormat(
+        const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+    uint32_t FindMemoryType(uint32_t memoryTypeFilter, VkMemoryPropertyFlagBits properties);
+
+    void CreateImageWithInfo(
+        const VkImageCreateInfo& imageInfo,
+        VkMemoryPropertyFlagBits memoryProperties,
+        VkImage& image,
+        VkDeviceMemory& imageMemory
+    );
 
 private:
 

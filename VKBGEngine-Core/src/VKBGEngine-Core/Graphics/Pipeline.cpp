@@ -38,14 +38,6 @@ PipelineProps Pipeline::GetDefaultPipelineProps(uint32_t width, uint32_t height)
         .extent = { width, height }
     };
 
-    properties.ViewportInfo = {
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
-        .viewportCount = 1,
-        .pViewports = &properties.Viewport,
-        .scissorCount = 1,
-        .pScissors = &properties.Scissor
-    };
-
     properties.InputAssemblyInfo = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
         .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
@@ -145,6 +137,14 @@ void Pipeline::CreateGraphicsPipeline(
         .vertexAttributeDescriptionCount = 0,
         .pVertexAttributeDescriptions = nullptr
     };
+
+    VkPipelineViewportStateCreateInfo viewportInfo = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+        .viewportCount = 1,
+        .pViewports = &properties.Viewport,
+        .scissorCount = 1,
+        .pScissors = &properties.Scissor
+    };
     
     VkGraphicsPipelineCreateInfo pipelineInfo{
         .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
@@ -152,7 +152,7 @@ void Pipeline::CreateGraphicsPipeline(
         .pStages = shaderStages,
         .pVertexInputState = &vertexInputInfo,
         .pInputAssemblyState = &properties.InputAssemblyInfo,
-        .pViewportState = &properties.ViewportInfo,
+        .pViewportState = &viewportInfo,
         .pRasterizationState = &properties.RasterizationInfo,
         .pMultisampleState = &properties.MultisampleInfo,
         .pDepthStencilState = &properties.DepthStencilInfo,

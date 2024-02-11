@@ -15,6 +15,7 @@
 #include <unordered_map>
 #include <map>
 #include <unordered_set>
+#include <array>
 
 // File System
 #include <filesystem>
