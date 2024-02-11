@@ -10,7 +10,6 @@ struct PipelineProps
     VkPipelineRasterizationStateCreateInfo RasterizationInfo;
     VkPipelineMultisampleStateCreateInfo MultisampleInfo;
     VkPipelineColorBlendAttachmentState ColorBlendAttachment;
-    VkPipelineColorBlendStateCreateInfo ColorBlendInfo;
     VkPipelineDepthStencilStateCreateInfo DepthStencilInfo;
     VkPipelineLayout PipelineLayout{ nullptr };
     VkRenderPass RenderPass{ nullptr };
@@ -29,6 +28,8 @@ public:
 
     Pipeline(const Pipeline&) = delete;
     void operator=(const Pipeline&) = delete;
+
+    void BindToCommandBuffer(VkCommandBuffer commandBuffer);
 
 public:
     static PipelineProps GetDefaultPipelineProps(uint32_t width, uint32_t height);

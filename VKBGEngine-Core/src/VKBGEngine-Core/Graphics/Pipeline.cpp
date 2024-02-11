@@ -21,6 +21,11 @@ Pipeline::~Pipeline()
     vkDestroyShaderModule(m_Context->GetLogicalDevice(), m_FragmentShaderModule, nullptr);
 }
 
+void Pipeline::BindToCommandBuffer(VkCommandBuffer commandBuffer)
+{
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline);
+}
+
 PipelineProps Pipeline::GetDefaultPipelineProps(uint32_t width, uint32_t height)
 {
     PipelineProps properties{};
@@ -73,15 +78,6 @@ PipelineProps Pipeline::GetDefaultPipelineProps(uint32_t width, uint32_t height)
         .colorWriteMask =
       VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
       VK_COLOR_COMPONENT_A_BIT
-    };
-
-    properties.ColorBlendInfo = {
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-        .logicOpEnable = VK_FALSE,
-        .logicOp = VK_LOGIC_OP_COPY,
-        .attachmentCount = 1,
-        .pAttachments = &properties.ColorBlendAttachment,
-        .blendConstants = { 0.f, 0.f, 0.f, 0.f }
     };
 
     properties.DepthStencilInfo = {
@@ -145,6 +141,15 @@ void Pipeline::CreateGraphicsPipeline(
         .scissorCount = 1,
         .pScissors = &properties.Scissor
     };
+
+    VkPipelineColorBlendStateCreateInfo ColorBlendInfo{
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+        .logicOpEnable = VK_FALSE,
+        .logicOp = VK_LOGIC_OP_COPY,
+        .attachmentCount = 1,
+        .pAttachments = &properties.ColorBlendAttachment,
+        .blendConstants = { 0.f, 0.f, 0.f, 0.f }
+    };
     
     VkGraphicsPipelineCreateInfo pipelineInfo{
         .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
@@ -156,7 +161,7 @@ void Pipeline::CreateGraphicsPipeline(
         .pRasterizationState = &properties.RasterizationInfo,
         .pMultisampleState = &properties.MultisampleInfo,
         .pDepthStencilState = &properties.DepthStencilInfo,
-        .pColorBlendState = &properties.ColorBlendInfo,
+        .pColorBlendState = &ColorBlendInfo,
         .pDynamicState = nullptr,
         .layout = properties.PipelineLayout,
         .renderPass = properties.RenderPass,
