@@ -92,7 +92,7 @@ VkResult SwapChain::SubmitCommandBuffers(const VkCommandBuffer* buffers, uint32_
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
-    vkResetFences(m_Context->GetLogicalDevice(), 1, &m_ImagesInFlight[m_CurrentFrame]);
+    vkResetFences(m_Context->GetLogicalDevice(), 1, &m_InFlightFences[m_CurrentFrame]);
     if (vkQueueSubmit(m_Context->GetGraphicsQueue(), 1, &submitInfo, m_InFlightFences[m_CurrentFrame]) !=
         VK_SUCCESS)
     {
