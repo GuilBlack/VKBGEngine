@@ -16,6 +16,8 @@ public:
         Destroy();
     }
 
+    VkExtent2D GetExtent() { return { m_Properties.Width, m_Properties.Height }; }
+
     bool ShouldClose() const;
 
     void CreateSurface(VkInstance instance, VkSurfaceKHR* surface);

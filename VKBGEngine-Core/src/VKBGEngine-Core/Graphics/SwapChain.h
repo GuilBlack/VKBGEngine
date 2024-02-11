@@ -14,8 +14,11 @@ public:
     void operator=(const SwapChain&) = delete;
 
     // Getters
-    VkExtent2D GetSwapChainExtent() { return m_SwapChainExtent; }
-    size_t GetFrameCount() { return m_SwapChainImages.size(); }
+    VkExtent2D GetSwapChainExtent() const { return m_SwapChainExtent; }
+    uint32_t GetWidth() const { return m_SwapChainExtent.width; }
+    uint32_t GetHeight() const { return m_SwapChainExtent.height; }
+    size_t GetFrameCount() const { return m_SwapChainImages.size(); }
+    VkRenderPass GetRenderPass() const { return m_RenderPass; }
 
 private:
     class RenderContext* m_Context;

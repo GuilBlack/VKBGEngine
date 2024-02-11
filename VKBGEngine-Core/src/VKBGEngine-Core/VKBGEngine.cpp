@@ -20,17 +20,9 @@ void Engine::Init(EngineProps properties)
             properties.WindowProperties.Height
         });
 
-    PipelineProps pipelineProperties = Pipeline::GetDefaultPipelineProps(
-        properties.WindowProperties.Width,
-        properties.WindowProperties.Height
-    );
-
-    m_Pipeline = new Pipeline(
-        m_RenderContext,
-        "res/Shaders/Compiled/Simple.vert.spv",
-        "res/Shaders/Compiled/Simple.frag.spv",
-        pipelineProperties
-    );
+    CreatePipelineLayout();
+    CreatePipeline();
+    CreateCommandBuffers();
 }
 
 void Engine::Run()
@@ -47,10 +39,54 @@ void Engine::Run()
 
 void Engine::Shutdown()
 {
+    vkDestroyPipelineLayout(m_RenderContext->GetLogicalDevice(), m_PipelineLayout, nullptr);
+    
     delete m_Pipeline;
     delete m_SwapChain;
     delete m_RenderContext;
     delete m_Window;
+}
+
+void Engine::CreatePipelineLayout()
+{
+    VkPipelineLayoutCreateInfo createInfo{
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+        .setLayoutCount = 0,
+        .pSetLayouts = nullptr,
+        .pushConstantRangeCount = 0,
+        .pPushConstantRanges = nullptr
+    };
+
+    if (vkCreatePipelineLayout(m_RenderContext->GetLogicalDevice(), &createInfo, nullptr, &m_PipelineLayout))
+        throw std::runtime_error("Failed to create PipelineLayout");
+}
+
+void Engine::CreatePipeline()
+{
+    PipelineProps pipelineProperties = Pipeline::GetDefaultPipelineProps(
+        m_SwapChain->GetWidth(),
+        m_SwapChain->GetHeight()
+    );
+
+    pipelineProperties.RenderPass = m_SwapChain->GetRenderPass();
+    pipelineProperties.PipelineLayout = m_PipelineLayout;
+
+    m_Pipeline = new Pipeline(
+        m_RenderContext,
+        "res/Shaders/Compiled/Simple.vert.spv",
+        "res/Shaders/Compiled/Simple.frag.spv",
+        pipelineProperties
+    );
+}
+
+void Engine::CreateCommandBuffers()
+{
+
+}
+
+void Engine::DrawFrame()
+{
+
 }
 
 }
