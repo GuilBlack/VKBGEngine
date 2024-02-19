@@ -54,7 +54,7 @@ VkFormat RenderContext::FindSupportedFormat(const std::vector<VkFormat>& candida
     throw std::runtime_error("Failed to find supported format");
 }
 
-uint32_t RenderContext::FindMemoryType(uint32_t memoryTypeFilter, VkMemoryPropertyFlagBits properties)
+uint32_t RenderContext::FindMemoryType(uint32_t memoryTypeFilter, VkMemoryPropertyFlags properties)
 {
     VkPhysicalDeviceMemoryProperties memoryProperties;
     vkGetPhysicalDeviceMemoryProperties(m_PhysicalDevice, &memoryProperties);
@@ -70,7 +70,7 @@ uint32_t RenderContext::FindMemoryType(uint32_t memoryTypeFilter, VkMemoryProper
     throw std::runtime_error("failed to find suitable memory type!");
 }
 
-void RenderContext::CreateImageWithInfo(const VkImageCreateInfo& imageInfo, VkMemoryPropertyFlagBits memoryProperties, VkImage& image, VkDeviceMemory& imageMemory)
+void RenderContext::CreateImageWithInfo(const VkImageCreateInfo& imageInfo, VkMemoryPropertyFlags memoryProperties, VkImage& image, VkDeviceMemory& imageMemory)
 {
     if (vkCreateImage(m_Device, &imageInfo, nullptr, &image) != VK_SUCCESS)
         throw std::runtime_error("Failed to create image");
@@ -91,6 +91,33 @@ void RenderContext::CreateImageWithInfo(const VkImageCreateInfo& imageInfo, VkMe
     {
         throw std::runtime_error("failed to bind image memory!");
     }
+}
+
+void RenderContext::CreateBuffer(VkDeviceSize bufferSize, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory)
+{
+    VkBufferCreateInfo bufferInfo{
+        .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+        .size = bufferSize,
+        .usage = usage,
+        .sharingMode = VK_SHARING_MODE_EXCLUSIVE
+    };
+    
+    if (vkCreateBuffer(m_Device, &bufferInfo, nullptr, &buffer) != VK_SUCCESS)
+        throw std::runtime_error("Failed to create buffer");
+
+    VkMemoryRequirements memRequirements{};
+    vkGetBufferMemoryRequirements(m_Device, buffer, &memRequirements);
+
+    VkMemoryAllocateInfo allocInfo{
+        .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        .allocationSize = memRequirements.size,
+        .memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits, properties)
+    };
+
+    if (vkAllocateMemory(m_Device, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS)
+        throw std::runtime_error("Failed to allocate buffer memory");
+
+    vkBindBufferMemory(m_Device, buffer, bufferMemory, 0);
 }
 
 #pragma region Initialization Code

@@ -39,13 +39,20 @@ public:
 
     VkFormat FindSupportedFormat(
         const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
-    uint32_t FindMemoryType(uint32_t memoryTypeFilter, VkMemoryPropertyFlagBits properties);
+    uint32_t FindMemoryType(uint32_t memoryTypeFilter, VkMemoryPropertyFlags properties);
 
     void CreateImageWithInfo(
         const VkImageCreateInfo& imageInfo,
-        VkMemoryPropertyFlagBits memoryProperties,
+        VkMemoryPropertyFlags memoryProperties,
         VkImage& image,
         VkDeviceMemory& imageMemory
+    );
+    void CreateBuffer(
+        VkDeviceSize bufferSize,
+        VkBufferUsageFlags usage,
+        VkMemoryPropertyFlags properties,
+        VkBuffer& buffer,
+        VkDeviceMemory& bufferMemory
     );
 
 private:

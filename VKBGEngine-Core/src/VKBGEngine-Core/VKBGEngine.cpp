@@ -3,6 +3,7 @@
 #include "Graphics/Pipeline.h"
 #include "Graphics/RenderContext.h"
 #include "Graphics/SwapChain.h"
+#include "Graphics/Model.h"
 #include "WindowProps.h"
 
 namespace vkbg
@@ -20,6 +21,7 @@ void Engine::Init(EngineProps properties)
             properties.WindowProperties.Height
         });
 
+    LoadModels();
     CreatePipelineLayout();
     CreatePipeline();
     CreateCommandBuffers();
@@ -46,6 +48,7 @@ void Engine::Shutdown()
     
     delete m_Pipeline;
     delete m_SwapChain;
+    delete m_Model;
     delete m_RenderContext;
     delete m_Window;
 }
@@ -128,12 +131,23 @@ void Engine::CreateCommandBuffers()
         vkCmdBeginRenderPass(m_CommandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
         m_Pipeline->BindToCommandBuffer(m_CommandBuffers[i]);
-        vkCmdDraw(m_CommandBuffers[i], 3, 1, 0, 0);
+        m_Model->Bind(m_CommandBuffers[i]);
+        m_Model->Draw(m_CommandBuffers[i]);
 
         vkCmdEndRenderPass(m_CommandBuffers[i]);
         if (vkEndCommandBuffer(m_CommandBuffers[i]) != VK_SUCCESS)
             throw std::runtime_error("A command buffer has failed to end recording");
     }
+}
+
+void Engine::LoadModels()
+{
+    std::vector<Model::Vertex> vertices{
+        {{ 0.0f, -0.5f}},
+        {{ 0.5f,  0.5f}},
+        {{-0.5f,  0.5f}}
+    };
+    m_Model = new Model(m_RenderContext, vertices);
 }
 
 void Engine::DrawFrame()

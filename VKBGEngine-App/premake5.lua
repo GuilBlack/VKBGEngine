@@ -40,6 +40,12 @@ project "VKBGEngine-App"
             "C:/VulkanSDK/1.3.268.0/Include"
         }
 
+        postbuildcommands
+        {
+            "call " .. os.realpath("res\\Shaders\\CompileScripts\\BuildShaders.bat"),
+            "{COPY} res/Shaders/ " .. "%{cfg.targetdir}/res/Shaders"
+        }
+
     filter "configurations:Debug"
         symbols "On"
         optimize "Off"

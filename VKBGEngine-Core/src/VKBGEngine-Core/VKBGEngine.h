@@ -11,7 +11,7 @@ struct EngineProps
 class Engine
 {
 public:
-    ~Engine() = default;
+    ~Engine() {}
 
     static Engine& Instance()
     {
@@ -33,6 +33,7 @@ private:
     void CreatePipelineLayout();
     void CreatePipeline();
     void CreateCommandBuffers();
+    void LoadModels();
 
     void DrawFrame();
 
@@ -43,6 +44,7 @@ private:
     class Pipeline* m_Pipeline{ nullptr };
     VkPipelineLayout m_PipelineLayout;
     std::vector<VkCommandBuffer> m_CommandBuffers;
+    class Model* m_Model;
 };
 }
 
