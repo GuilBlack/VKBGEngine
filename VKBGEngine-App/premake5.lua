@@ -16,7 +16,8 @@ project "VKBGEngine-App"
         "src",
         "src/%{prj.name}",
         "%{wks.location}/VKBGEngine-Core/src",
-        "%{IncludeDir.GLFW}"
+        "%{IncludeDir.GLFW}",
+        "%{IncludeDir.GLM}"
     }
 
     links

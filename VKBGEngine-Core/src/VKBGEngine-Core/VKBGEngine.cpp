@@ -1,3 +1,4 @@
+#include "Graphics/Model.h"
 #include "VKBGEngine.h"
 #include "Window.h"
 #include "Graphics/Pipeline.h"
@@ -10,6 +11,7 @@ namespace vkbg
 {
 struct SimplePushConstantData
 {
+    glm::mat2 Transform;
     glm::vec2 Offset;
     alignas(16) glm::vec3 Color;
 };
@@ -27,7 +29,7 @@ void Engine::Init(EngineProps properties)
     //        properties.WindowProperties.Height
     //    });
 
-    LoadModels();
+    LoadEntities();
     CreatePipelineLayout();
     RecreateSwapChain();
     CreateCommandBuffers();
@@ -51,10 +53,10 @@ void Engine::Run()
 void Engine::Shutdown()
 {
     vkDestroyPipelineLayout(m_RenderContext->GetLogicalDevice(), m_PipelineLayout, nullptr);
+    m_Entities.clear();
     
     delete m_Pipeline;
     delete m_SwapChain;
-    delete m_Model;
     delete m_RenderContext;
     delete m_Window;
 }
@@ -114,44 +116,6 @@ void Engine::CreateCommandBuffers()
         throw std::runtime_error("Failed to allocate command buffers");
 }
 
-void Engine::LoadModels()
-{
-    std::vector<Model::Vertex> vertices{
-        {{ 0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-        {{ 0.5f,  0.5f}, {0.0f, 1.0f, 0.0f}},
-        {{-0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}}
-    };
-    m_Model = new Model(m_RenderContext, vertices);
-}
-
-void Engine::DrawFrame()
-{
-    uint32_t imageIndex;
-    VkResult result = m_SwapChain->AcquireNextImage(&imageIndex);
-
-    if (result == VK_ERROR_OUT_OF_DATE_KHR)
-    {
-        RecreateSwapChain();
-        return;
-    }
-
-    if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
-        throw std::runtime_error("Failed to acquire next swap chain image");
-
-    RecordCommandBuffer(imageIndex);
-    result = m_SwapChain->SubmitCommandBuffers(&m_CommandBuffers[imageIndex], &imageIndex);
-
-    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_Window->WasWindowResized())
-    {
-        m_Window->ResetWindowResizeFlag();
-        RecreateSwapChain();
-        return;
-    }
-
-    if (result != VK_SUCCESS)
-        throw std::runtime_error("Failed to present swap chain image");
-}
-
 void Engine::FreeCommandBuffers()
 {
     vkFreeCommandBuffers(
@@ -190,10 +154,55 @@ void Engine::RecreateSwapChain()
     CreatePipeline();
 }
 
+void Engine::LoadEntities()
+{
+    std::vector<Model::Vertex> vertices{
+        {{ 0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+        {{ 0.5f,  0.5f}, {0.0f, 1.0f, 0.0f}},
+        {{-0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}}
+    };
+    auto model = std::make_shared<Model>(m_RenderContext, vertices);
+
+    auto triangle = Entity::CreateEntity();
+    triangle.Model = model;
+    triangle.Color = { .1f, .8f, .1f };
+    triangle.Transform2D.Translation.x = .2f;
+    triangle.Transform2D.Rotation = glm::radians(45.f);
+    triangle.Transform2D.Scale = { 1.5f, 1.f };
+
+    m_Entities.emplace_back(std::move(triangle));
+}
+
+void Engine::DrawFrame()
+{
+    uint32_t imageIndex;
+    VkResult result = m_SwapChain->AcquireNextImage(&imageIndex);
+
+    if (result == VK_ERROR_OUT_OF_DATE_KHR)
+    {
+        RecreateSwapChain();
+        return;
+    }
+
+    if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
+        throw std::runtime_error("Failed to acquire next swap chain image");
+
+    RecordCommandBuffer(imageIndex);
+    result = m_SwapChain->SubmitCommandBuffers(&m_CommandBuffers[imageIndex], &imageIndex);
+
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_Window->WasWindowResized())
+    {
+        m_Window->ResetWindowResizeFlag();
+        RecreateSwapChain();
+        return;
+    }
+
+    if (result != VK_SUCCESS)
+        throw std::runtime_error("Failed to present swap chain image");
+}
+
 void Engine::RecordCommandBuffer(int32_t imageIndex)
 {
-    static int frame = 0;
-    frame = (frame + 1) % 1000;
     VkCommandBufferBeginInfo beginInfo{
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO
     };
@@ -236,29 +245,36 @@ void Engine::RecordCommandBuffer(int32_t imageIndex)
     vkCmdSetViewport(m_CommandBuffers[imageIndex], 0, 1, &viewport);
     vkCmdSetScissor(m_CommandBuffers[imageIndex], 0, 1, &scissor);
 
-    m_Pipeline->BindToCommandBuffer(m_CommandBuffers[imageIndex]);
-    m_Model->Bind(m_CommandBuffers[imageIndex]);
-
-    for (int i = 0; i < 4; ++i)
-    {
-        SimplePushConstantData push{
-            .Offset = {-0.5f + frame * 0.002f, -.4f + i * .25f},
-            .Color = { 0.f, 0.f, .2f + .2f * i }
-        };
-        vkCmdPushConstants(
-            m_CommandBuffers[imageIndex],
-            m_PipelineLayout,
-            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-            0, sizeof(SimplePushConstantData), 
-            &push
-        );
-        m_Model->Draw(m_CommandBuffers[imageIndex]);
-    }
+    RenderEntities(m_CommandBuffers[imageIndex]);
 
     vkCmdEndRenderPass(m_CommandBuffers[imageIndex]);
     if (vkEndCommandBuffer(m_CommandBuffers[imageIndex]) != VK_SUCCESS)
         throw std::runtime_error("A command buffer has failed to end recording");
 }
 
+void Engine::RenderEntities(VkCommandBuffer commandBuffer)
+{
+    m_Pipeline->BindToCommandBuffer(commandBuffer);
 
+    for (auto& entity : m_Entities)
+    {
+        SimplePushConstantData push{
+            .Transform = entity.Transform2D.GetTransform(),
+            .Offset = entity.Transform2D.Translation,
+            .Color = entity.Color
+        };
+
+        vkCmdPushConstants(
+            commandBuffer, 
+            m_PipelineLayout, 
+            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 
+            0, 
+            sizeof(SimplePushConstantData), 
+            &push
+        );
+
+        entity.Model->Bind(commandBuffer);
+        entity.Model->Draw(commandBuffer);
+    }
+}
 }

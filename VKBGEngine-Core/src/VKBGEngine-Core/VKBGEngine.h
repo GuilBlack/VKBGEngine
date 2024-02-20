@@ -1,5 +1,6 @@
 #pragma once
 #include "WindowProps.h"
+#include "Entities/Entity.h"
 
 namespace vkbg
 {
@@ -36,12 +37,13 @@ private:
     void CreateCommandBuffers();
     void FreeCommandBuffers();
 
-    void LoadModels();
+    void RecreateSwapChain();
+
+    void LoadEntities();
 
     void DrawFrame();
-
-    void RecreateSwapChain();
     void RecordCommandBuffer(int32_t imageIndex);
+    void RenderEntities(VkCommandBuffer commandBuffer);
 
 private:
     class Window* m_Window{ nullptr };
@@ -50,7 +52,8 @@ private:
     class Pipeline* m_Pipeline{ nullptr };
     VkPipelineLayout m_PipelineLayout;
     std::vector<VkCommandBuffer> m_CommandBuffers;
-    class Model* m_Model;
+    std::vector<Entity> m_Entities;
+
 };
 }
 
