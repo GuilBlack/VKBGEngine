@@ -8,6 +8,12 @@
 
 namespace vkbg
 {
+struct SimplePushConstantData
+{
+    glm::vec2 Offset;
+    alignas(16) glm::vec3 Color;
+};
+
 void Engine::Init(EngineProps properties)
 {
     glfwInit();
@@ -55,12 +61,18 @@ void Engine::Shutdown()
 
 void Engine::CreatePipelineLayout()
 {
+    VkPushConstantRange pcRange{
+        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+        .offset = 0,
+        .size = sizeof(SimplePushConstantData)
+    };
+
     VkPipelineLayoutCreateInfo createInfo{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
         .setLayoutCount = 0,
         .pSetLayouts = nullptr,
-        .pushConstantRangeCount = 0,
-        .pPushConstantRanges = nullptr
+        .pushConstantRangeCount = 1,
+        .pPushConstantRanges = &pcRange
     };
 
     if (vkCreatePipelineLayout(m_RenderContext->GetLogicalDevice(), &createInfo, nullptr, &m_PipelineLayout))
@@ -180,6 +192,8 @@ void Engine::RecreateSwapChain()
 
 void Engine::RecordCommandBuffer(int32_t imageIndex)
 {
+    static int frame = 0;
+    frame = (frame + 1) % 1000;
     VkCommandBufferBeginInfo beginInfo{
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO
     };
@@ -224,7 +238,22 @@ void Engine::RecordCommandBuffer(int32_t imageIndex)
 
     m_Pipeline->BindToCommandBuffer(m_CommandBuffers[imageIndex]);
     m_Model->Bind(m_CommandBuffers[imageIndex]);
-    m_Model->Draw(m_CommandBuffers[imageIndex]);
+
+    for (int i = 0; i < 4; ++i)
+    {
+        SimplePushConstantData push{
+            .Offset = {-0.5f + frame * 0.002f, -.4f + i * .25f},
+            .Color = { 0.f, 0.f, .2f + .2f * i }
+        };
+        vkCmdPushConstants(
+            m_CommandBuffers[imageIndex],
+            m_PipelineLayout,
+            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+            0, sizeof(SimplePushConstantData), 
+            &push
+        );
+        m_Model->Draw(m_CommandBuffers[imageIndex]);
+    }
 
     vkCmdEndRenderPass(m_CommandBuffers[imageIndex]);
     if (vkEndCommandBuffer(m_CommandBuffers[imageIndex]) != VK_SUCCESS)

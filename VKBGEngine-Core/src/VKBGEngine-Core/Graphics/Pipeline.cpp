@@ -11,7 +11,7 @@ Pipeline::Pipeline(
     const std::string& fragShaderPath,
     const PipelineProps& properties)
     : m_Context{context}
-{
+{ 
     CreateGraphicsPipeline(vertShaderPath, fragShaderPath, properties);
 }
 

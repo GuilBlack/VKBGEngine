@@ -10,7 +10,7 @@ void Window::FramebufferSizeCallback(GLFWwindow* window, int32_t width, int32_t 
     vkbgWindow->m_Properties.Height = height;
 }
 
-    void Window::Init()
+void Window::Init()
 {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
