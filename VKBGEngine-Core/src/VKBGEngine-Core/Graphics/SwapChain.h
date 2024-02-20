@@ -8,10 +8,13 @@ public:
     static constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
 public:
     SwapChain(class RenderContext* context, VkExtent2D windowExtent);
+    SwapChain(class RenderContext* context, VkExtent2D windowExtent, SwapChain* oldSwapChain);
     ~SwapChain();
 
     SwapChain(const SwapChain&) = delete;
-    void operator=(const SwapChain&) = delete;
+    SwapChain& operator=(const SwapChain&) = delete;
+
+    void Init();
 
     VkResult AcquireNextImage(uint32_t* imageIndex);
     VkResult SubmitCommandBuffers(const VkCommandBuffer* buffers, uint32_t* imageIndex);
@@ -47,6 +50,8 @@ private:
     std::vector<VkFence> m_InFlightFences;
     std::vector<VkFence> m_ImagesInFlight;
     size_t m_CurrentFrame = 0;
+
+    SwapChain* m_OldSwapChain;
 
 private:
     void CreateSwapChain();

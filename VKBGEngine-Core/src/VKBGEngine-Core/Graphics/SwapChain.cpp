@@ -4,14 +4,17 @@
 namespace vkbg
 {
 SwapChain::SwapChain(RenderContext* context, VkExtent2D windowExtent)
-    : m_Context{context}, m_WindowExtent{windowExtent}
+    : m_Context{context}, m_WindowExtent{windowExtent}, m_OldSwapChain{ nullptr }
 {
-    CreateSwapChain();
-    CreateImageViews();
-    CreateRenderPass();
-    CreateDepthResources();
-    CreateFrameBuffer();
-    CreateSyncObjects();
+    Init();
+}
+
+SwapChain::SwapChain(RenderContext* context, VkExtent2D windowExtent, SwapChain* oldSwapChain)
+    : m_Context{ context }, m_WindowExtent{ windowExtent }, m_OldSwapChain{ oldSwapChain }
+{
+    Init();
+
+    delete m_OldSwapChain;
 }
 
 SwapChain::~SwapChain()
@@ -48,6 +51,16 @@ SwapChain::~SwapChain()
         vkDestroySemaphore(device, m_RenderFinishedSemaphores[i], nullptr);
         vkDestroyFence(device, m_InFlightFences[i], nullptr);
     }
+}
+
+void SwapChain::Init()
+{
+    CreateSwapChain();
+    CreateImageViews();
+    CreateRenderPass();
+    CreateDepthResources();
+    CreateFrameBuffer();
+    CreateSyncObjects();
 }
 
 VkResult SwapChain::AcquireNextImage(uint32_t* imageIndex)
@@ -144,8 +157,9 @@ void SwapChain::CreateSwapChain()
         .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
         .presentMode = presentMode,
         .clipped = VK_TRUE,
-        .oldSwapchain = VK_NULL_HANDLE
+        .oldSwapchain = m_OldSwapChain == nullptr ? VK_NULL_HANDLE : m_OldSwapChain->m_SwapChain
     };
+
 
     QueueFamilyIndices queueFamilies = m_Context->GetQueueFamilies();
     uint32_t queueFamilyIndices[]{
@@ -395,7 +409,7 @@ VkSurfaceFormatKHR SwapChain::PickSwapChainSurfaceFormat(const std::vector<VkSur
 {
     for (const auto& availableFormat : availableFormats)
     {
-        if (availableFormat.format == VK_FORMAT_B8G8R8A8_UNORM &&
+        if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB &&
             availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
         {
             return availableFormat;

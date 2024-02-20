@@ -4,13 +4,18 @@ namespace vkbg
 {
 struct PipelineProps
 {
-    VkViewport Viewport;
-    VkRect2D Scissor;
+    PipelineProps() = default;
+    ~PipelineProps() = default;
+    PipelineProps(const PipelineProps&) = delete;
+    PipelineProps& operator=(const PipelineProps&) = delete;
+
     VkPipelineInputAssemblyStateCreateInfo InputAssemblyInfo;
     VkPipelineRasterizationStateCreateInfo RasterizationInfo;
     VkPipelineMultisampleStateCreateInfo MultisampleInfo;
     VkPipelineColorBlendAttachmentState ColorBlendAttachment;
     VkPipelineDepthStencilStateCreateInfo DepthStencilInfo;
+    std::vector<VkDynamicState> DynamicStates;
+    VkPipelineDynamicStateCreateInfo DynamicStatesInfo;
     VkPipelineLayout PipelineLayout{ nullptr };
     VkRenderPass RenderPass{ nullptr };
     uint32_t SubPass{ 0 };
@@ -23,22 +28,22 @@ public:
         class RenderContext* context, 
         const std::string& vertShaderPath, 
         const std::string& fragShaderPath, 
-        PipelineProps properties);
+        const PipelineProps& properties);
     ~Pipeline();
 
     Pipeline(const Pipeline&) = delete;
-    void operator=(const Pipeline&) = delete;
+    Pipeline& operator=(const Pipeline&) = delete;
 
     void BindToCommandBuffer(VkCommandBuffer commandBuffer);
 
 public:
-    static PipelineProps GetDefaultPipelineProps(uint32_t width, uint32_t height);
+    static void GetDefaultPipelineProps(PipelineProps& properties);
 
 private:
     void CreateGraphicsPipeline(
         const std::string& vertShaderPath,
         const std::string& fragShaderPath,
-        PipelineProps properties);
+        const PipelineProps& properties);
 
 private:
     /// <summary>

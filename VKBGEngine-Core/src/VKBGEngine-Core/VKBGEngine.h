@@ -32,10 +32,16 @@ private:
 
     void CreatePipelineLayout();
     void CreatePipeline();
+    
     void CreateCommandBuffers();
+    void FreeCommandBuffers();
+
     void LoadModels();
 
     void DrawFrame();
+
+    void RecreateSwapChain();
+    void RecordCommandBuffer(int32_t imageIndex);
 
 private:
     class Window* m_Window{ nullptr };

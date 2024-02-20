@@ -9,7 +9,7 @@ Pipeline::Pipeline(
     class RenderContext* context,
     const std::string& vertShaderPath,
     const std::string& fragShaderPath,
-    PipelineProps properties)
+    const PipelineProps& properties)
     : m_Context{context}
 {
     CreateGraphicsPipeline(vertShaderPath, fragShaderPath, properties);
@@ -27,23 +27,8 @@ void Pipeline::BindToCommandBuffer(VkCommandBuffer commandBuffer)
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline);
 }
 
-PipelineProps Pipeline::GetDefaultPipelineProps(uint32_t width, uint32_t height)
+void Pipeline::GetDefaultPipelineProps(PipelineProps& properties)
 {
-    PipelineProps properties{};
-    properties.Viewport = {
-        .x = 0,
-        .y = 0,
-        .width = (float)width,
-        .height = (float)height,
-        .minDepth = 0.f,
-        .maxDepth = 1.f
-    };
-
-    properties.Scissor = {
-        .offset = { 0, 0 },
-        .extent = { width, height }
-    };
-
     properties.InputAssemblyInfo = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
         .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
@@ -94,13 +79,22 @@ PipelineProps Pipeline::GetDefaultPipelineProps(uint32_t width, uint32_t height)
         .maxDepthBounds = 1.0f,
     };
 
-    return properties;
+    properties.DynamicStates = {
+        VK_DYNAMIC_STATE_VIEWPORT,
+        VK_DYNAMIC_STATE_SCISSOR
+    };
+
+    properties.DynamicStatesInfo = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+        .dynamicStateCount = (uint32_t)properties.DynamicStates.size(),
+        .pDynamicStates = properties.DynamicStates.data()
+    };
 }
 
 void Pipeline::CreateGraphicsPipeline(
     const std::string & vertShaderPath,
     const std::string & fragShaderPath,
-    PipelineProps properties)
+    const PipelineProps& properties)
 {
     auto vertShaderCode = ReadFile(vertShaderPath);
     LOG("vertShaderCode size: " << vertShaderCode.size() << std::endl);
@@ -141,9 +135,7 @@ void Pipeline::CreateGraphicsPipeline(
     VkPipelineViewportStateCreateInfo viewportInfo = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
         .viewportCount = 1,
-        .pViewports = &properties.Viewport,
         .scissorCount = 1,
-        .pScissors = &properties.Scissor
     };
 
     VkPipelineColorBlendStateCreateInfo ColorBlendInfo{
@@ -166,14 +158,14 @@ void Pipeline::CreateGraphicsPipeline(
         .pMultisampleState = &properties.MultisampleInfo,
         .pDepthStencilState = &properties.DepthStencilInfo,
         .pColorBlendState = &ColorBlendInfo,
-        .pDynamicState = nullptr,
+        .pDynamicState = &properties.DynamicStatesInfo,
         .layout = properties.PipelineLayout,
         .renderPass = properties.RenderPass,
         .subpass = properties.SubPass,
         .basePipelineHandle = VK_NULL_HANDLE,
         .basePipelineIndex = -1
     };
-
+    
     if (vkCreateGraphicsPipelines(
         m_Context->GetLogicalDevice(), VK_NULL_HANDLE
         , 1, &pipelineInfo
