@@ -43,7 +43,7 @@ project "VKBGEngine-App"
         postbuildcommands
         {
             "call " .. os.realpath("res\\Shaders\\CompileScripts\\BuildShaders.bat"),
-            "{COPY} res/Shaders/ " .. "%{cfg.targetdir}/res/Shaders"
+            "{COPY} res/Shaders/Compiled " .. "%{cfg.targetdir}/res/Shaders/Compiled"
         }
 
     filter "configurations:Debug"
