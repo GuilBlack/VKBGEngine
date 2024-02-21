@@ -31,29 +31,13 @@ private:
     Engine(Engine&&) = delete;
     Engine& operator=(Engine&&) = delete;
 
-    void CreatePipelineLayout();
-    void CreatePipeline();
-    
-    void CreateCommandBuffers();
-    void FreeCommandBuffers();
-
-    void RecreateSwapChain();
-
     void LoadEntities();
-
-    void DrawFrame();
-    void RecordCommandBuffer(int32_t imageIndex);
-    void RenderEntities(VkCommandBuffer commandBuffer);
 
 private:
     class Window* m_Window{ nullptr };
     class RenderContext* m_RenderContext{ nullptr };
-    class SwapChain* m_SwapChain{ nullptr };
-    class Pipeline* m_Pipeline{ nullptr };
-    VkPipelineLayout m_PipelineLayout;
-    std::vector<VkCommandBuffer> m_CommandBuffers;
+    class Renderer* m_Renderer{ nullptr };
     std::vector<Entity> m_Entities;
-
 };
 }
 

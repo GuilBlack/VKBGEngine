@@ -1,21 +1,15 @@
-#include "Graphics/Model.h"
 #include "VKBGEngine.h"
 #include "Window.h"
 #include "Graphics/Pipeline.h"
 #include "Graphics/RenderContext.h"
 #include "Graphics/SwapChain.h"
+#include "Graphics/Renderer.h"
 #include "Graphics/Model.h"
+#include "Graphics/Systems/SimpleRenderSystem.h"
 #include "WindowProps.h"
 
 namespace vkbg
 {
-struct SimplePushConstantData
-{
-    glm::mat2 Transform;
-    glm::vec2 Offset;
-    alignas(16) glm::vec3 Color;
-};
-
 void Engine::Init(EngineProps properties)
 {
     glfwInit();
@@ -24,27 +18,25 @@ void Engine::Init(EngineProps properties)
 
     m_RenderContext = new RenderContext(m_Window);
 
-    //m_SwapChain = new SwapChain(m_RenderContext, {
-    //        properties.WindowProperties.Width,
-    //        properties.WindowProperties.Height
-    //    });
+    m_Renderer = new Renderer(m_Window, m_RenderContext);
 
     LoadEntities();
-    CreatePipelineLayout();
-    RecreateSwapChain();
-    CreateCommandBuffers();
 }
 
 void Engine::Run()
 {
-    glm::mat4 matrix;
-    glm::vec4 vec;
-    auto test = matrix * vec;
+    SimpleRenderSystem srs{ m_RenderContext, m_Renderer->GetSwapChainRenderPass() };
 
     while (!m_Window->ShouldClose())
     {
         glfwPollEvents();
-        DrawFrame();
+        VkCommandBuffer commandBuffer{};
+        if (m_Renderer->BeginFrame(commandBuffer) == false)
+            continue;
+        m_Renderer->BeginSwapChainRenderPass(commandBuffer);
+        srs.RenderEntities(commandBuffer, m_Entities);
+        m_Renderer->EndSwapChainRenderPass(commandBuffer);
+        m_Renderer->EndFrame();
     }
 
     vkDeviceWaitIdle(m_RenderContext->GetLogicalDevice());
@@ -52,106 +44,11 @@ void Engine::Run()
 
 void Engine::Shutdown()
 {
-    vkDestroyPipelineLayout(m_RenderContext->GetLogicalDevice(), m_PipelineLayout, nullptr);
     m_Entities.clear();
     
-    delete m_Pipeline;
-    delete m_SwapChain;
+    delete m_Renderer;
     delete m_RenderContext;
     delete m_Window;
-}
-
-void Engine::CreatePipelineLayout()
-{
-    VkPushConstantRange pcRange{
-        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-        .offset = 0,
-        .size = sizeof(SimplePushConstantData)
-    };
-
-    VkPipelineLayoutCreateInfo createInfo{
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-        .setLayoutCount = 0,
-        .pSetLayouts = nullptr,
-        .pushConstantRangeCount = 1,
-        .pPushConstantRanges = &pcRange
-    };
-
-    if (vkCreatePipelineLayout(m_RenderContext->GetLogicalDevice(), &createInfo, nullptr, &m_PipelineLayout))
-        throw std::runtime_error("Failed to create PipelineLayout");
-}
-
-void Engine::CreatePipeline()
-{
-    assert(m_SwapChain != nullptr && "SwapChain wasn't initialized");
-    assert(m_PipelineLayout != nullptr && "SwapChain wasn't initialized");
-
-    PipelineProps pipelineProperties{};
-    Pipeline::GetDefaultPipelineProps(pipelineProperties);
-
-    pipelineProperties.RenderPass = m_SwapChain->GetRenderPass();
-    pipelineProperties.PipelineLayout = m_PipelineLayout;
-    
-    delete m_Pipeline;
-    m_Pipeline = new Pipeline(
-        m_RenderContext,
-        "res/Shaders/Compiled/Simple.vert.spv",
-        "res/Shaders/Compiled/Simple.frag.spv",
-        pipelineProperties
-    );
-}
-
-void Engine::CreateCommandBuffers()
-{
-    m_CommandBuffers.resize(m_SwapChain->GetFrameCount());
-
-    VkCommandBufferAllocateInfo allocInfo{
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-        .commandPool = m_RenderContext->GetGraphicsCommandPool(),
-        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-        .commandBufferCount = (uint32_t)m_CommandBuffers.size(),
-    };
-
-    if (vkAllocateCommandBuffers(m_RenderContext->GetLogicalDevice(), &allocInfo, m_CommandBuffers.data()) != VK_SUCCESS)
-        throw std::runtime_error("Failed to allocate command buffers");
-}
-
-void Engine::FreeCommandBuffers()
-{
-    vkFreeCommandBuffers(
-        m_RenderContext->GetLogicalDevice(),
-        m_RenderContext->GetGraphicsCommandPool(), (uint32_t)m_CommandBuffers.size(),
-        m_CommandBuffers.data()
-    );
-    m_CommandBuffers.clear();
-}
-
-void Engine::RecreateSwapChain()
-{
-    auto extent = m_Window->GetExtent();
-    while (extent.height == 0 || extent.width == 0)
-    {
-        glfwWaitEvents();
-        extent = m_Window->GetExtent();
-    }
-
-    // wait for everything on the GPU to finish its executuion 
-    // so that we can recreate the swap chain
-    vkDeviceWaitIdle(m_RenderContext->GetLogicalDevice());
-
-    if (m_SwapChain == nullptr)
-        m_SwapChain = new SwapChain(m_RenderContext, extent);
-    else
-    {
-        m_SwapChain = new SwapChain(m_RenderContext, extent, m_SwapChain);
-        if (m_SwapChain->GetFrameCount() != m_CommandBuffers.size())
-        {
-            FreeCommandBuffers();
-            CreateCommandBuffers();
-        }
-    }
-
-    CreatePipeline();
 }
 
 void Engine::LoadEntities()
@@ -171,110 +68,5 @@ void Engine::LoadEntities()
     triangle.Transform2D.Scale = { 1.5f, 1.f };
 
     m_Entities.emplace_back(std::move(triangle));
-}
-
-void Engine::DrawFrame()
-{
-    uint32_t imageIndex;
-    VkResult result = m_SwapChain->AcquireNextImage(&imageIndex);
-
-    if (result == VK_ERROR_OUT_OF_DATE_KHR)
-    {
-        RecreateSwapChain();
-        return;
-    }
-
-    if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
-        throw std::runtime_error("Failed to acquire next swap chain image");
-
-    RecordCommandBuffer(imageIndex);
-    result = m_SwapChain->SubmitCommandBuffers(&m_CommandBuffers[imageIndex], &imageIndex);
-
-    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_Window->WasWindowResized())
-    {
-        m_Window->ResetWindowResizeFlag();
-        RecreateSwapChain();
-        return;
-    }
-
-    if (result != VK_SUCCESS)
-        throw std::runtime_error("Failed to present swap chain image");
-}
-
-void Engine::RecordCommandBuffer(int32_t imageIndex)
-{
-    VkCommandBufferBeginInfo beginInfo{
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO
-    };
-
-    if (vkBeginCommandBuffer(m_CommandBuffers[imageIndex], &beginInfo) != VK_SUCCESS)
-        throw std::runtime_error("A command buffer has failed to begin recording");
-
-    std::array<VkClearValue, 2> clearValues{};
-    clearValues[0].color = { .1f, .1f, .1f, 1.f };
-    clearValues[1].depthStencil = { 1.f, 0 };
-
-    VkRenderPassBeginInfo renderPassInfo{
-        .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-        .renderPass = m_SwapChain->GetRenderPass(),
-        .framebuffer = m_SwapChain->GetFramebuffer(imageIndex),
-        .renderArea = {
-            .offset = { 0, 0 },
-            .extent = m_SwapChain->GetSwapChainExtent()
-        },
-        .clearValueCount = 2,
-        .pClearValues = clearValues.data()
-    };
-
-    // inline because it's a primary command buffer and that the commands
-    // are in the render pass itself
-    // if we used secondary command buffers, we could have used multiple command buffer
-    // in one render pass but we can't mix both of these methods
-    vkCmdBeginRenderPass(m_CommandBuffers[imageIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-    VkViewport viewport{
-        .x = 0.f,
-        .y = 0.f,
-        .width = (float)m_SwapChain->GetSwapChainExtent().width,
-        .height = (float)m_SwapChain->GetSwapChainExtent().height,
-        .minDepth = 0.0f,
-        .maxDepth = 1.0f,
-    };
-    VkRect2D scissor{ {0, 0}, m_SwapChain->GetSwapChainExtent() };
-
-    vkCmdSetViewport(m_CommandBuffers[imageIndex], 0, 1, &viewport);
-    vkCmdSetScissor(m_CommandBuffers[imageIndex], 0, 1, &scissor);
-
-    RenderEntities(m_CommandBuffers[imageIndex]);
-
-    vkCmdEndRenderPass(m_CommandBuffers[imageIndex]);
-    if (vkEndCommandBuffer(m_CommandBuffers[imageIndex]) != VK_SUCCESS)
-        throw std::runtime_error("A command buffer has failed to end recording");
-}
-
-void Engine::RenderEntities(VkCommandBuffer commandBuffer)
-{
-    m_Pipeline->BindToCommandBuffer(commandBuffer);
-
-    for (auto& entity : m_Entities)
-    {
-        SimplePushConstantData push{
-            .Transform = entity.Transform2D.GetTransform(),
-            .Offset = entity.Transform2D.Translation,
-            .Color = entity.Color
-        };
-
-        vkCmdPushConstants(
-            commandBuffer, 
-            m_PipelineLayout, 
-            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 
-            0, 
-            sizeof(SimplePushConstantData), 
-            &push
-        );
-
-        entity.Model->Bind(commandBuffer);
-        entity.Model->Draw(commandBuffer);
-    }
 }
 }
