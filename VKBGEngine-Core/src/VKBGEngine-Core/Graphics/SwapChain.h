@@ -19,11 +19,17 @@ public:
     VkResult AcquireNextImage(uint32_t* imageIndex);
     VkResult SubmitCommandBuffers(const VkCommandBuffer* buffers, uint32_t* imageIndex);
 
+    bool CompareSwapChainFormats(SwapChain* other) const
+    {
+        return m_SwapChainDepthFormat == other->m_SwapChainDepthFormat
+            && m_SwapChainImageFormat == other->m_SwapChainImageFormat;
+    }
+
     // Getters
     VkExtent2D GetSwapChainExtent() const { return m_SwapChainExtent; }
     uint32_t GetWidth() const { return m_SwapChainExtent.width; }
     uint32_t GetHeight() const { return m_SwapChainExtent.height; }
-    size_t GetFrameCount() const { return m_SwapChainImages.size(); }
+    size_t GetImageCount() const { return m_SwapChainImages.size(); }
     VkRenderPass GetRenderPass() const { return m_RenderPass; }
     VkFramebuffer GetFramebuffer(uint32_t index) { return m_SwapChainFramebuffers[index]; }
 
@@ -33,6 +39,7 @@ private:
 
     VkSwapchainKHR m_SwapChain;
     VkFormat m_SwapChainImageFormat;
+    VkFormat m_SwapChainDepthFormat;
     VkExtent2D m_SwapChainExtent;
 
     std::vector<VkImage> m_SwapChainImages;

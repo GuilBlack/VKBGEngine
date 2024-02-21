@@ -13,8 +13,6 @@ SwapChain::SwapChain(RenderContext* context, VkExtent2D windowExtent, SwapChain*
     : m_Context{ context }, m_WindowExtent{ windowExtent }, m_OldSwapChain{ oldSwapChain }
 {
     Init();
-
-    delete m_OldSwapChain;
 }
 
 SwapChain::~SwapChain()
@@ -285,11 +283,12 @@ void SwapChain::CreateRenderPass()
 void SwapChain::CreateDepthResources()
 {
     VkFormat depthFormat = FindDepthFormat();
+    m_SwapChainDepthFormat = depthFormat;
     VkExtent2D swapChainExtent = GetSwapChainExtent();
 
-    m_DepthImages.resize(GetFrameCount());
-    m_DepthImageMemories.resize(GetFrameCount());
-    m_DepthImageViews.resize(GetFrameCount());
+    m_DepthImages.resize(GetImageCount());
+    m_DepthImageMemories.resize(GetImageCount());
+    m_DepthImageViews.resize(GetImageCount());
 
     for (int i = 0; i < m_DepthImages.size(); i++) 
     {
@@ -339,8 +338,8 @@ void SwapChain::CreateDepthResources()
 
 void SwapChain::CreateFrameBuffer()
 {
-    m_SwapChainFramebuffers.resize(GetFrameCount());
-    for (size_t i = 0; i < GetFrameCount(); i++)
+    m_SwapChainFramebuffers.resize(GetImageCount());
+    for (size_t i = 0; i < GetImageCount(); i++)
     {
         std::array<VkImageView, 2> attachments{ 
             m_SwapChainImageViews[i], 
@@ -374,7 +373,7 @@ void SwapChain::CreateSyncObjects()
     m_ImageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
     m_RenderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
     m_InFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-    m_ImagesInFlight.resize(GetFrameCount(), VK_NULL_HANDLE);
+    m_ImagesInFlight.resize(GetImageCount(), VK_NULL_HANDLE);
 
     VkSemaphoreCreateInfo semaphoreInfo = {
         .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO

@@ -65,6 +65,7 @@ void Renderer::EndFrame()
     else if (result != VK_SUCCESS)
         throw std::runtime_error("Failed to present swap chain image");
 
+    m_CurrentFrameIndex = (m_CurrentFrameIndex + 1) % SwapChain::MAX_FRAMES_IN_FLIGHT;
     m_IsFrameStarted = false;
 }
 
@@ -123,7 +124,7 @@ VkRenderPass Renderer::GetSwapChainRenderPass() const
 
 void Renderer::CreateCommandBuffers()
 {
-    m_CommandBuffers.resize(m_SwapChain->GetFrameCount());
+    m_CommandBuffers.resize(SwapChain::MAX_FRAMES_IN_FLIGHT);
 
     VkCommandBufferAllocateInfo allocInfo{
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -163,12 +164,15 @@ void Renderer::RecreateSwapChain()
         m_SwapChain = new SwapChain(m_Context, extent);
     else
     {
+        SwapChain* oldSwapChain = m_SwapChain;
         m_SwapChain = new SwapChain(m_Context, extent, m_SwapChain);
-        if (m_SwapChain->GetFrameCount() != m_CommandBuffers.size())
+
+        if (oldSwapChain->CompareSwapChainFormats(m_SwapChain) == false)
         {
-            FreeCommandBuffers();
-            CreateCommandBuffers();
+            delete oldSwapChain;
+            throw std::runtime_error("Swap chain image or depth format has changed");
         }
+        delete oldSwapChain;
     }
 }
 }

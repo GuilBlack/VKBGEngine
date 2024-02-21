@@ -18,7 +18,12 @@ public:
     VkCommandBuffer GetCurrentCommandBuffer() const 
     {
         assert(m_IsFrameStarted && "Cannot get command buffer if frame isn't in progress");
-        return m_CommandBuffers[m_CurrentImageIndex];
+        return m_CommandBuffers[m_CurrentFrameIndex];
+    }
+    uint32_t GetCurrentFrameIndex()
+    {
+        assert(m_IsFrameStarted && "Cannot get frame index if frame isn't in progress");
+
     }
     VkRenderPass GetSwapChainRenderPass() const;
 
@@ -42,7 +47,8 @@ private:
     class SwapChain* m_SwapChain{ nullptr };
     std::vector<VkCommandBuffer> m_CommandBuffers;
 
-    uint32_t m_CurrentImageIndex{ 0 };
+    uint32_t m_CurrentImageIndex{ 0 }; // use swap chain next image
+    uint32_t m_CurrentFrameIndex{ 0 }; // use frame in flight
     bool m_IsFrameStarted{ false };
 };
 }
