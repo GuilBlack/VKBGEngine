@@ -122,6 +122,17 @@ VkRenderPass Renderer::GetSwapChainRenderPass() const
     return m_SwapChain->GetRenderPass();
 }
 
+VkExtent2D Renderer::GetSwapChainExtent() const
+{
+    return m_SwapChain->GetSwapChainExtent();
+}
+
+float Renderer::GetAspectRatio() const
+{
+    auto[width, height] = m_SwapChain->GetSwapChainExtent();
+    return (float)width / height;
+}
+
 void Renderer::CreateCommandBuffers()
 {
     m_CommandBuffers.resize(SwapChain::MAX_FRAMES_IN_FLIGHT);

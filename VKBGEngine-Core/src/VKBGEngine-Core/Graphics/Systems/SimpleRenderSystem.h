@@ -9,7 +9,7 @@ public:
     SimpleRenderSystem(class RenderContext* context, VkRenderPass renderPass);
     ~SimpleRenderSystem();
 
-    void RenderEntities(VkCommandBuffer commandBuffer, std::vector<Entity>& entities);
+    void RenderEntities(VkCommandBuffer commandBuffer, std::vector<Entity>& entities, const class Camera& camera);
 
 private:
     SimpleRenderSystem(const SimpleRenderSystem&) = delete;

@@ -26,6 +26,8 @@ public:
 
     }
     VkRenderPass GetSwapChainRenderPass() const;
+    VkExtent2D GetSwapChainExtent() const;
+    float GetAspectRatio() const;
 
 private:
     Renderer(const Renderer&) = delete;

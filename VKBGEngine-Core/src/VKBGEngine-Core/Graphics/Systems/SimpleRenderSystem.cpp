@@ -3,14 +3,14 @@
 #include "Graphics/Pipeline.h"
 #include "Graphics/RenderContext.h"
 #include "Graphics/Model.h"
+#include "Entities/Camera.h"
 
 namespace vkbg
 {
 struct SimplePushConstantData
 {
-    glm::mat2 Transform;
-    glm::vec2 Offset;
-    alignas(16) glm::vec3 Color;
+    glm::mat4 Transform{ 1.f };
+    glm::vec3 Color;
 };
 
 SimpleRenderSystem::SimpleRenderSystem(class RenderContext* context, VkRenderPass renderPass)
@@ -26,15 +26,18 @@ SimpleRenderSystem::~SimpleRenderSystem()
     delete m_Pipeline;
 }
 
-void SimpleRenderSystem::RenderEntities(VkCommandBuffer commandBuffer, std::vector<Entity>& entities)
+void SimpleRenderSystem::RenderEntities(VkCommandBuffer commandBuffer, std::vector<Entity>& entities, const Camera& camera)
 {
     m_Pipeline->BindToCommandBuffer(commandBuffer);
 
+    glm::mat4 projView = camera.GetProjectionMatrix() * camera.GetViewMatrix();
+
     for (auto& entity : entities)
     {
+        entity.Transform.Rotation.y = glm::mod(entity.Transform.Rotation.y + 0.001f, glm::two_pi<float>());
+        entity.Transform.Rotation.x = glm::mod(entity.Transform.Rotation.x + 0.005f, glm::two_pi<float>());
         SimplePushConstantData push{
-            .Transform = entity.Transform2D.GetTransform(),
-            .Offset = entity.Transform2D.Translation,
+            .Transform = projView * entity.Transform.GetTransform(),
             .Color = entity.Color
         };
 

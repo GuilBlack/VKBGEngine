@@ -31,7 +31,10 @@ private:
     Engine(Engine&&) = delete;
     Engine& operator=(Engine&&) = delete;
 
+    std::unique_ptr<class Model> CreateCubeModel(class RenderContext* context, glm::vec3 offset);
+
     void LoadEntities();
+
 
 private:
     class Window* m_Window{ nullptr };

@@ -6,6 +6,7 @@
 #include "Graphics/Renderer.h"
 #include "Graphics/Model.h"
 #include "Graphics/Systems/SimpleRenderSystem.h"
+#include "Entities/Camera.h"
 #include "WindowProps.h"
 
 namespace vkbg
@@ -26,15 +27,20 @@ void Engine::Init(EngineProps properties)
 void Engine::Run()
 {
     SimpleRenderSystem srs{ m_RenderContext, m_Renderer->GetSwapChainRenderPass() };
+    Camera camera{};
+    camera.SetViewTarget({ -1.f, 1.f , 10.f }, { 0.f, 0.0f, 2.5f });
 
     while (!m_Window->ShouldClose())
     {
         glfwPollEvents();
+        //camera.SetOrthogonalProjection(-1, 1, 1, -1, -1, 1);
+        camera.SetPerspectiveProjection(glm::radians(45.f), m_Renderer->GetAspectRatio(), .1f, 100.f);
+
         VkCommandBuffer commandBuffer{};
         if (m_Renderer->BeginFrame(commandBuffer) == false)
             continue;
         m_Renderer->BeginSwapChainRenderPass(commandBuffer);
-        srs.RenderEntities(commandBuffer, m_Entities);
+        srs.RenderEntities(commandBuffer, m_Entities, camera);
         m_Renderer->EndSwapChainRenderPass(commandBuffer);
         m_Renderer->EndFrame();
     }
@@ -51,22 +57,77 @@ void Engine::Shutdown()
     delete m_Window;
 }
 
-void Engine::LoadEntities()
+std::unique_ptr<Model> Engine::CreateCubeModel(RenderContext* context, glm::vec3 offset)
 {
     std::vector<Model::Vertex> vertices{
-        {{ 0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-        {{ 0.5f,  0.5f}, {0.0f, 1.0f, 0.0f}},
-        {{-0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}}
+
+        // left face (white)
+        {{-.5f, -.5f, -.5f}, {.9f, .9f, .9f}},
+        {{-.5f, .5f, .5f}, {.9f, .9f, .9f}},
+        {{-.5f, -.5f, .5f}, {.9f, .9f, .9f}},
+        {{-.5f, -.5f, -.5f}, {.9f, .9f, .9f}},
+        {{-.5f, .5f, -.5f}, {.9f, .9f, .9f}},
+        {{-.5f, .5f, .5f}, {.9f, .9f, .9f}},
+
+        // right face (yellow)
+        {{.5f, -.5f, -.5f}, {.8f, .8f, .1f}},
+        {{.5f, .5f, .5f}, {.8f, .8f, .1f}},
+        {{.5f, -.5f, .5f}, {.8f, .8f, .1f}},
+        {{.5f, -.5f, -.5f}, {.8f, .8f, .1f}},
+        {{.5f, .5f, -.5f}, {.8f, .8f, .1f}},
+        {{.5f, .5f, .5f}, {.8f, .8f, .1f}},
+
+        // top face (orange, remember y axis points down)
+        {{-.5f, -.5f, -.5f}, {.9f, .6f, .1f}},
+        {{.5f, -.5f, .5f}, {.9f, .6f, .1f}},
+        {{-.5f, -.5f, .5f}, {.9f, .6f, .1f}},
+        {{-.5f, -.5f, -.5f}, {.9f, .6f, .1f}},
+        {{.5f, -.5f, -.5f}, {.9f, .6f, .1f}},
+        {{.5f, -.5f, .5f}, {.9f, .6f, .1f}},
+
+        // bottom face (red)
+        {{-.5f, .5f, -.5f}, {.8f, .1f, .1f}},
+        {{.5f, .5f, .5f}, {.8f, .1f, .1f}},
+        {{-.5f, .5f, .5f}, {.8f, .1f, .1f}},
+        {{-.5f, .5f, -.5f}, {.8f, .1f, .1f}},
+        {{.5f, .5f, -.5f}, {.8f, .1f, .1f}},
+        {{.5f, .5f, .5f}, {.8f, .1f, .1f}},
+
+        // nose face (blue)
+        {{-.5f, -.5f, 0.5f}, {.1f, .1f, .8f}},
+        {{.5f, .5f, 0.5f}, {.1f, .1f, .8f}},
+        {{-.5f, .5f, 0.5f}, {.1f, .1f, .8f}},
+        {{-.5f, -.5f, 0.5f}, {.1f, .1f, .8f}},
+        {{.5f, -.5f, 0.5f}, {.1f, .1f, .8f}},
+        {{.5f, .5f, 0.5f}, {.1f, .1f, .8f}},
+
+        // tail face (green)
+        {{-.5f, -.5f, -0.5f}, {.1f, .8f, .1f}},
+        {{.5f, .5f, -0.5f}, {.1f, .8f, .1f}},
+        {{-.5f, .5f, -0.5f}, {.1f, .8f, .1f}},
+        {{-.5f, -.5f, -0.5f}, {.1f, .8f, .1f}},
+        {{.5f, -.5f, -0.5f}, {.1f, .8f, .1f}},
+        {{.5f, .5f, -0.5f}, {.1f, .8f, .1f}},
+
     };
-    auto model = std::make_shared<Model>(m_RenderContext, vertices);
+    for (auto& v : vertices)
+    {
+        v.Position += offset;
+    }
+    return std::make_unique<Model>(context, vertices);
 
-    auto triangle = Entity::CreateEntity();
-    triangle.Model = model;
-    triangle.Color = { .1f, .8f, .1f };
-    triangle.Transform2D.Translation.x = .2f;
-    triangle.Transform2D.Rotation = glm::radians(45.f);
-    triangle.Transform2D.Scale = { 1.5f, 1.f };
+}
 
-    m_Entities.emplace_back(std::move(triangle));
+void Engine::LoadEntities()
+{
+    std::shared_ptr<Model> cubeModel = CreateCubeModel(m_RenderContext, { 0.f, 0.f, 0.f });
+
+    Entity cube = Entity::CreateEntity();
+    cube.Model = cubeModel;
+
+    cube.Transform.Translation = { 0.f, 0.f, 2.5f };
+    cube.Transform.Scale = { .5f, .5f, .5f };
+
+    m_Entities.emplace_back(std::move(cube));
 }
 }
