@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <functional>
 #include <stdexcept>
+#include <chrono>
 
 // Data Structures
 #include <string>

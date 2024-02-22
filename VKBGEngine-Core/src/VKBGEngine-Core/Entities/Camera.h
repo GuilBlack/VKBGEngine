@@ -27,7 +27,7 @@ public:
 
     void SetViewDirection(glm::vec3 position, glm::vec3 direction, glm::vec3 up = {0.0f, -1.0f, 0.0f});
     void SetViewTarget(glm::vec3 position, glm::vec3 target, glm::vec3 up = {0.0f, -1.0f, 0.0f});
-    void SetViewYXZ(glm::vec3 position, glm::vec3 rotation = {0.0f, -1.0f, 0.0f});
+    void SetViewYXZ(glm::vec3 position, glm::vec3 rotation);
 
     const glm::mat4& GetProjectionMatrix() const { return m_ProjectionMatrix; }
     const glm::mat4& GetViewMatrix() const { return m_ViewMatrix; }

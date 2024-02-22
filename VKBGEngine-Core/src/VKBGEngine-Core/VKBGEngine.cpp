@@ -1,5 +1,6 @@
 #include "VKBGEngine.h"
 #include "Window.h"
+#include "WindowProps.h"
 #include "Graphics/Pipeline.h"
 #include "Graphics/RenderContext.h"
 #include "Graphics/SwapChain.h"
@@ -7,7 +8,7 @@
 #include "Graphics/Model.h"
 #include "Graphics/Systems/SimpleRenderSystem.h"
 #include "Entities/Camera.h"
-#include "WindowProps.h"
+#include "Inputs/KeyboardMovementController.h"
 
 namespace vkbg
 {
@@ -28,12 +29,21 @@ void Engine::Run()
 {
     SimpleRenderSystem srs{ m_RenderContext, m_Renderer->GetSwapChainRenderPass() };
     Camera camera{};
-    camera.SetViewTarget({ -1.f, 1.f , 10.f }, { 0.f, 0.0f, 2.5f });
+    auto viewerEntity = Entity::CreateEntity();
+    KeyboardMovementController cameraController{};
+    auto currentTime = std::chrono::high_resolution_clock::now();
 
     while (!m_Window->ShouldClose())
     {
         glfwPollEvents();
-        //camera.SetOrthogonalProjection(-1, 1, 1, -1, -1, 1);
+        auto newTime = std::chrono::high_resolution_clock::now();
+        float frameTime =
+            std::chrono::duration<float, std::chrono::seconds::period>(newTime - currentTime).count();
+        currentTime = newTime;
+
+        cameraController.MoveInPlaneXZ(m_Window->GetWindowHandle(), frameTime, viewerEntity);
+        camera.SetViewYXZ(viewerEntity.Transform.Translation, viewerEntity.Transform.Rotation);
+
         camera.SetPerspectiveProjection(glm::radians(45.f), m_Renderer->GetAspectRatio(), .1f, 100.f);
 
         VkCommandBuffer commandBuffer{};

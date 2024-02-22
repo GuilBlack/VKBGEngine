@@ -34,8 +34,6 @@ void SimpleRenderSystem::RenderEntities(VkCommandBuffer commandBuffer, std::vect
 
     for (auto& entity : entities)
     {
-        entity.Transform.Rotation.y = glm::mod(entity.Transform.Rotation.y + 0.001f, glm::two_pi<float>());
-        entity.Transform.Rotation.x = glm::mod(entity.Transform.Rotation.x + 0.005f, glm::two_pi<float>());
         SimplePushConstantData push{
             .Transform = projView * entity.Transform.GetTransform(),
             .Color = entity.Color

@@ -16,6 +16,7 @@ public:
         Destroy();
     }
 
+    GLFWwindow* GetWindowHandle() const { return m_Window; }
     VkExtent2D GetExtent() { return { m_Properties.Width, m_Properties.Height }; }
     bool WasWindowResized() { return m_WindowResized; }
     void ResetWindowResizeFlag() { m_WindowResized = false; }
