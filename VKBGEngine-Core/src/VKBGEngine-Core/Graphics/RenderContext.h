@@ -54,6 +54,14 @@ public:
         VkBuffer& buffer,
         VkDeviceMemory& bufferMemory
     );
+    void CreateDeviceLocalBuffer(
+        VkDeviceSize bufferSize,
+        VkBufferUsageFlags usage,
+        VkBuffer& buffer,
+        VkDeviceMemory& bufferMemory,
+        const void* data
+    );
+    void CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize bufferSize);
 
 private:
 
@@ -78,6 +86,9 @@ private:
 
     void CreateCommandPool();
 #pragma endregion
+
+    VkCommandBuffer BeginSingleTimeCommands();
+    void EndSingleTimeCommands(VkCommandBuffer commandBuffer);
 
 
 private:

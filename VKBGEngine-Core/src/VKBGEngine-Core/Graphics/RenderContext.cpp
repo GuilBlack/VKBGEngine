@@ -120,6 +120,47 @@ void RenderContext::CreateBuffer(VkDeviceSize bufferSize, VkBufferUsageFlags usa
     vkBindBufferMemory(m_Device, buffer, bufferMemory, 0);
 }
 
+void RenderContext::CreateDeviceLocalBuffer(VkDeviceSize bufferSize, VkBufferUsageFlags usage, VkBuffer& buffer, VkDeviceMemory& bufferMemory, const void* data)
+{
+    VkBuffer stagingBuffer{};
+    VkDeviceMemory stagingBufferMemory{};
+    CreateBuffer(
+        bufferSize,
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        stagingBuffer,
+        stagingBufferMemory
+    );
+
+    void* bufferData;
+    vkMapMemory(m_Device, stagingBufferMemory, 0, bufferSize, 0, &bufferData);
+    memcpy(bufferData, data, (size_t)bufferSize);
+    vkUnmapMemory(m_Device, stagingBufferMemory);
+
+    CreateBuffer(
+        bufferSize,
+        usage | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, // host = CPU, Device = GPU
+        buffer,
+        bufferMemory
+    );
+
+    CopyBuffer(stagingBuffer, buffer, bufferSize);
+
+    vkDestroyBuffer(m_Device, stagingBuffer, nullptr);
+    vkFreeMemory(m_Device, stagingBufferMemory, nullptr);
+}
+
+void RenderContext::CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize bufferSize)
+{
+    VkCommandBuffer cb = BeginSingleTimeCommands();
+
+    VkBufferCopy copyInfo{ 0, 0, bufferSize };
+    vkCmdCopyBuffer(cb, srcBuffer, dstBuffer, 1, &copyInfo);
+
+    EndSingleTimeCommands(cb);
+}
+
 #pragma region Initialization Code
 void RenderContext::CreateInstance()
 {
@@ -514,4 +555,39 @@ void RenderContext::CreateCommandPool()
     }
 }
 #pragma endregion
+
+VkCommandBuffer RenderContext::BeginSingleTimeCommands()
+{
+    VkCommandBufferAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandPool = m_GraphicsCommandPool;
+    allocInfo.commandBufferCount = 1;
+
+    VkCommandBuffer commandBuffer;
+    vkAllocateCommandBuffers(m_Device, &allocInfo, &commandBuffer);
+
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+    vkBeginCommandBuffer(commandBuffer, &beginInfo);
+    return commandBuffer;
+}
+
+void RenderContext::EndSingleTimeCommands(VkCommandBuffer commandBuffer)
+{
+    vkEndCommandBuffer(commandBuffer);
+
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &commandBuffer;
+
+    vkQueueSubmit(m_GraphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueWaitIdle(m_GraphicsQueue);
+
+    vkFreeCommandBuffers(m_Device, m_GraphicsCommandPool, 1, &commandBuffer);
+}
+
 }
