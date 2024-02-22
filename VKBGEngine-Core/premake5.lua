@@ -16,7 +16,8 @@ project "VKBGEngine-Core"
         "src",
         "src/%{prj.name}",
         "%{IncludeDir.GLFW}",
-        "%{IncludeDir.GLM}"
+        "%{IncludeDir.GLM}",
+        "%{IncludeDir.tinyobjloader}"
     }
 
     links
