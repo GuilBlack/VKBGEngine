@@ -4,19 +4,23 @@
 #include "Graphics/RenderContext.h"
 #include "Graphics/Model.h"
 #include "Entities/Camera.h"
+#include "FrameInfo.h"
 
 namespace vkbg
 {
 struct SimplePushConstantData
 {
-    glm::mat4 Transform{ 1.f };
-    glm::vec3 Color;
+    glm::mat4 ModelMatrix{ 1.f };
+    glm::mat4 NormalMatrix{ 1.f };
 };
 
-SimpleRenderSystem::SimpleRenderSystem(class RenderContext* context, VkRenderPass renderPass)
+SimpleRenderSystem::SimpleRenderSystem(
+    class RenderContext* context,
+    VkRenderPass renderPass,
+    VkDescriptorSetLayout globalSetLayout)
     : m_Context{context}
 {
-    CreatePipelineLayout();
+    CreatePipelineLayout(globalSetLayout);
     CreatePipeline(renderPass);
 }
 
@@ -26,17 +30,23 @@ SimpleRenderSystem::~SimpleRenderSystem()
     delete m_Pipeline;
 }
 
-void SimpleRenderSystem::RenderEntities(VkCommandBuffer commandBuffer, std::vector<Entity>& entities, const Camera& camera)
+void SimpleRenderSystem::RenderEntities(VkCommandBuffer commandBuffer, std::vector<Entity>& entities, const FrameInfo& frameInfo)
 {
     m_Pipeline->BindToCommandBuffer(commandBuffer);
 
-    glm::mat4 projView = camera.GetProjectionMatrix() * camera.GetViewMatrix();
+    vkCmdBindDescriptorSets(
+        frameInfo.CommandBuffer,
+        VK_PIPELINE_BIND_POINT_GRAPHICS,
+        m_PipelineLayout,
+        0, 1, &frameInfo.GlobalDescriptorSet,
+        0, nullptr
+    );
 
     for (auto& entity : entities)
     {
         SimplePushConstantData push{
-            .Transform = projView * entity.Transform.GetTransform(),
-            .Color = entity.Color
+            .ModelMatrix = entity.Transform.GetTransform(),
+            .NormalMatrix = entity.Transform.GetNormalMatrix()
         };
 
         vkCmdPushConstants(
@@ -53,7 +63,7 @@ void SimpleRenderSystem::RenderEntities(VkCommandBuffer commandBuffer, std::vect
     }
 }
 
-void SimpleRenderSystem::CreatePipelineLayout()
+void SimpleRenderSystem::CreatePipelineLayout(VkDescriptorSetLayout globalSetLayout)
 {
     VkPushConstantRange pcRange{
         .stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -61,10 +71,12 @@ void SimpleRenderSystem::CreatePipelineLayout()
         .size = sizeof(SimplePushConstantData)
     };
 
+    std::vector<VkDescriptorSetLayout> descriptorSetLayouts{ globalSetLayout };
+
     VkPipelineLayoutCreateInfo createInfo{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-        .setLayoutCount = 0,
-        .pSetLayouts = nullptr,
+        .setLayoutCount = (uint32_t)descriptorSetLayouts.size(),
+        .pSetLayouts = descriptorSetLayouts.data(),
         .pushConstantRangeCount = 1,
         .pPushConstantRanges = &pcRange
     };

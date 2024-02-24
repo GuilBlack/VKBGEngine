@@ -6,10 +6,12 @@ namespace vkbg
 class SimpleRenderSystem
 {
 public:
-    SimpleRenderSystem(class RenderContext* context, VkRenderPass renderPass);
+    SimpleRenderSystem(
+        class RenderContext* context,
+        VkRenderPass renderPass,
+        VkDescriptorSetLayout globalSetLayout);
     ~SimpleRenderSystem();
-
-    void RenderEntities(VkCommandBuffer commandBuffer, std::vector<Entity>& entities, const class Camera& camera);
+    void RenderEntities(VkCommandBuffer commandBuffer, std::vector<Entity>& entities, const struct FrameInfo& frameInfo);
 
 private:
     SimpleRenderSystem(const SimpleRenderSystem&) = delete;
@@ -17,7 +19,7 @@ private:
     SimpleRenderSystem(SimpleRenderSystem&&) = delete;
     SimpleRenderSystem& operator=(SimpleRenderSystem&&) = delete;
 
-    void CreatePipelineLayout();
+    void CreatePipelineLayout(VkDescriptorSetLayout globalSetLayout);
     void CreatePipeline(VkRenderPass renderPass);
 
 private:

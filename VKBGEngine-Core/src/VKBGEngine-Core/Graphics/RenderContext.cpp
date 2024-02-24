@@ -1,3 +1,4 @@
+#include "Buffer.h"
 #include "RenderContext.h"
 #include "Window.h"
 #include "VulkanExtensionHelper.h"
@@ -120,35 +121,28 @@ void RenderContext::CreateBuffer(VkDeviceSize bufferSize, VkBufferUsageFlags usa
     vkBindBufferMemory(m_Device, buffer, bufferMemory, 0);
 }
 
-void RenderContext::CreateDeviceLocalBuffer(VkDeviceSize bufferSize, VkBufferUsageFlags usage, VkBuffer& buffer, VkDeviceMemory& bufferMemory, const void* data)
+void RenderContext::CreateDeviceLocalBuffer(VkDeviceSize elementSize, uint32_t elementCount, VkBufferUsageFlags usage, std::unique_ptr<Buffer>& buffer, void* data)
 {
-    VkBuffer stagingBuffer{};
-    VkDeviceMemory stagingBufferMemory{};
-    CreateBuffer(
-        bufferSize,
+    Buffer stagingBuffer{
+        this,
+        elementSize,
+        elementCount,
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        stagingBuffer,
-        stagingBufferMemory
-    );
+    };
 
-    void* bufferData;
-    vkMapMemory(m_Device, stagingBufferMemory, 0, bufferSize, 0, &bufferData);
-    memcpy(bufferData, data, (size_t)bufferSize);
-    vkUnmapMemory(m_Device, stagingBufferMemory);
+    stagingBuffer.Map();
+    stagingBuffer.WriteToBuffer(data);
 
-    CreateBuffer(
-        bufferSize,
+    buffer.reset(new Buffer(
+        this,
+        elementSize,
+        elementCount,
         usage | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, // host = CPU, Device = GPU
-        buffer,
-        bufferMemory
-    );
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT // host = CPU, Device = GPU
+    ));
 
-    CopyBuffer(stagingBuffer, buffer, bufferSize);
-
-    vkDestroyBuffer(m_Device, stagingBuffer, nullptr);
-    vkFreeMemory(m_Device, stagingBufferMemory, nullptr);
+    CopyBuffer(stagingBuffer.GetBuffer(), buffer->GetBuffer(), elementSize * elementCount);
 }
 
 void RenderContext::CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize bufferSize)
@@ -341,9 +335,8 @@ void RenderContext::PickPhysicalDevice()
         throw std::runtime_error("Failed to find a suitable device.");
 
     m_PhysicalDevice = deviceRanking.rbegin()->second;
-    VkPhysicalDeviceProperties deviceProperties;
-    vkGetPhysicalDeviceProperties(m_PhysicalDevice, &deviceProperties);
-    LOG("\nUsing physical device: " << deviceProperties.deviceName << '\n');
+    vkGetPhysicalDeviceProperties(m_PhysicalDevice, &m_PhysicalDeviceProperties);
+    LOG("\nUsing physical device: " << m_PhysicalDeviceProperties.deviceName << '\n');
 }
 
 bool RenderContext::IsDeviceSuitable(VkPhysicalDevice device, uint32_t& score)

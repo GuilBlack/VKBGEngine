@@ -49,13 +49,11 @@ private:
     void CreateIndexBuffer(const std::vector<uint32_t>& indices);
     class RenderContext* m_Context;
 
-    VkBuffer m_VertexBuffer{ nullptr };
-    VkDeviceMemory m_VertexBufferMemory{ nullptr };
+    std::unique_ptr<class Buffer> m_VertexBuffer;
     uint32_t m_VertexCount;
 
     bool m_HasIndexBuffer{ false };
-    VkBuffer m_IndexBuffer{ nullptr };
-    VkDeviceMemory m_IndexBufferMemory{ nullptr };
+    std::unique_ptr<class Buffer> m_IndexBuffer;
     uint32_t m_IndexCount{ 0 };
 };
 }

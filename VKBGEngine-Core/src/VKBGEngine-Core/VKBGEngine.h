@@ -40,6 +40,7 @@ private:
     class Window* m_Window{ nullptr };
     class RenderContext* m_RenderContext{ nullptr };
     class Renderer* m_Renderer{ nullptr };
+    class DescriptorPool* m_GlobalDescriptorPool{ nullptr };
     std::vector<Entity> m_Entities;
 };
 }

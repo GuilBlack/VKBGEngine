@@ -23,7 +23,7 @@ public:
     uint32_t GetCurrentFrameIndex()
     {
         assert(m_IsFrameStarted && "Cannot get frame index if frame isn't in progress");
-
+        return m_CurrentFrameIndex;
     }
     VkRenderPass GetSwapChainRenderPass() const;
     VkExtent2D GetSwapChainExtent() const;

@@ -36,6 +36,7 @@ public:
     VkQueue GetGraphicsQueue() const { return m_GraphicsQueue; }
     VkQueue GetPresentQueue() const { return m_PresentQueue; }
     VkCommandPool GetGraphicsCommandPool() const { return m_GraphicsCommandPool; }
+    VkPhysicalDeviceProperties GetPhysicalDeviceProperties() { return m_PhysicalDeviceProperties; }
 
     VkFormat FindSupportedFormat(
         const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
@@ -55,11 +56,11 @@ public:
         VkDeviceMemory& bufferMemory
     );
     void CreateDeviceLocalBuffer(
-        VkDeviceSize bufferSize,
+        VkDeviceSize elementSize,
+        uint32_t elementCount,
         VkBufferUsageFlags usage,
-        VkBuffer& buffer,
-        VkDeviceMemory& bufferMemory,
-        const void* data
+        std::unique_ptr<class Buffer>& buffer,
+        void* data
     );
     void CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize bufferSize);
 
@@ -94,6 +95,7 @@ private:
 private:
     VkInstance m_Instance;
     VkPhysicalDevice m_PhysicalDevice;
+    VkPhysicalDeviceProperties m_PhysicalDeviceProperties{};
     VkDebugUtilsMessengerEXT m_DebugMessenger;
     class Window* m_pWindow;
     
